@@ -16,21 +16,16 @@ from flask import Flask, request
 from flask_cors import CORS
 import json
 
-<<<<<<< Updated upstream
-=======
 
 import threading
 import requests
 
 
->>>>>>> Stashed changes
 # Create a simple Flask app.
 app = Flask(__name__)
 # Enable CORS for the app.
 CORS(app, resources={r'/*': {'origins': '*'}})
 
-<<<<<<< Updated upstream
-=======
 
 def check_fraud_api(order_data, results):
     url = "http://fraud_detection:50051/check_fraud"
@@ -82,7 +77,6 @@ def process_order(order_data, results):
     suggestions_thread.join()
 
 
->>>>>>> Stashed changes
 # Define a GET endpoint.
 @app.route('/', methods=['GET'])
 def index():
@@ -101,8 +95,7 @@ def checkout():
     """
     # Get request object data to json
     request_data = json.loads(request.data)
-<<<<<<< Updated upstream
-=======
+
     order_data = {
         'orderId': request_data.get('orderId', '12345'),
         'userId': request_data.get('userId', ''),
@@ -144,7 +137,6 @@ def checkout():
 
     return jsonify(order_status_response)
    
->>>>>>> Stashed changes
     # Print request object data
     print("Request Data:", request_data.get('items'))
 
