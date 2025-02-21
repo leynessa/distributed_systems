@@ -12,4 +12,5 @@ COPY ./orchestrator/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Set the command to run the container
-CMD python utils/other/hotreload.py "orchestrator/src/app.py"
+CMD uvicorn orchestrator.src.app:app --reload --host 0.0.0.0 --port 5000
+

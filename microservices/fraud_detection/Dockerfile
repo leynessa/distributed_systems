@@ -6,10 +6,10 @@ FROM python:3.11
 WORKDIR /app
 
 # Copy the requirements file to the working directory
-COPY ./fraud_detection/requirements.txt .
+COPY ./microservices/fraud_detection/requirements.txt .
 
 # Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Set the command to run the application
-CMD python utils/other/hotreload.py "fraud_detection/src/app.py"
+CMD uvicorn microservices.fraud_detection.src.fraud_detection:app --reload --host 0.0.0.0 --port 50051
