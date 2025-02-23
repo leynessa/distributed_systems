@@ -10,7 +10,7 @@ class FraudRequest(BaseModel):
 class FraudResponse(BaseModel):
     isFraudulent: bool
 
-@app.post("/check_fraud", response_model=FraudResponse)
+@app.get("/check_fraud", response_model=FraudResponse)
 def check_fraud(request: FraudRequest):
     # Random result logic
     is_fraudulent = random.choice([True, False])

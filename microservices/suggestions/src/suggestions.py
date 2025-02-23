@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 import random
-import requests
 
 app = FastAPI()
 
@@ -17,15 +16,10 @@ books_list = [
     {"title": "The Hobbit", "author": "J.R.R. Tolkien"}
 ]
 
-class SuggestionsRequest(BaseModel):
-    preferences: list
-
-class SuggestionsResponse(BaseModel):
-    bookSuggestions: list
-
-@app.post("/get_suggestions", response_model=SuggestionsResponse)
-def get_suggestions(request: SuggestionsRequest):
-    # For simplicity, select a random subset of books to suggest
-    num_suggestions = 3  # You can adjust how many books to suggest
-    suggested_books = random.sample(books_list, num_suggestions)
-    return SuggestionsResponse(bookSuggestions=suggested_books)
+@app.get("/get_suggestions")
+def get_suggestions():
+    num_suggestions = 3  # Кількість книг для повернення
+    if len(books_list) < num_suggestions:
+        num_suggestions = len(books_list)
+    
+    return random.sample(books_list, num_suggestions)
