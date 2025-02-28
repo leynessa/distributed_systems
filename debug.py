@@ -25,7 +25,7 @@ response = requests.get(url, headers=headers, data=json_data)
 
 # Перевірка статусу відповіді
 if response.status_code == 200:
-    print("Запит успішний. Отримано відповідь:")
+    print("request success. get response:")
     print(response.json())  # Вивести відповідь у вигляді JSON
 else:
-    print(f"Помилка запиту. Статус код: {response.status_code}")
+    print(f"bad request. status code: {response.status_code}")
