@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+service TransactionVerification {
+    rpc VerifyTransaction(TransactionRequest) returns (TransactionResponse);
+}
+
+message TransactionRequest {
+    float amount = 1;
+}
+
+message TransactionResponse {
+    bool is_valid = 1;
+}

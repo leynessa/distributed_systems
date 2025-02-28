@@ -21,7 +21,7 @@ def greet(name='you'):
         response = stub.SayHello(fraud_detection.HelloRequest(name=name))
     return response.greeting
 
-# Import Flask.
+from flask import Flask, request, jsonify
 
 # Flask is a web framework for Python.
 # It allows you to build a web application quickly.
@@ -115,20 +115,7 @@ def checkout():
     # Process order (gRPC calls in parallel)
     process_order(order_data, results)
 
-    # Create threads for gRPC calls
-    #fraud_thread = threading.Thread(target=check_fraud, args=(order_data, results))
-    #transaction_thread = threading.Thread(target=verify_transaction, args=(order_data, results))
-    #suggestions_thread = threading.Thread(target=get_suggestions, args=(order_data, results))
-
-    # Start threads
-    #fraud_thread.start()
-    #transaction_thread.start()
-    #suggestions_thread.start()
-
-    # Wait for all threads to finish
-    #fraud_thread.join()
-    #transaction_thread.join()
-    #suggestions_thread.join()
+   
 
     # Consolidate results
     if results.get('fraud') or not results.get('transaction_valid'):
@@ -145,21 +132,7 @@ def checkout():
 
     return jsonify(order_status_response)
    
-    # Print request object data
-
-    #print("Request Data:", request_data.get('items'))
-
-    # Dummy response following the provided YAML specification for the bookstore
-    #order_status_response = {
-       # 'orderId': '12345',
-        #'status': 'Order Approved',
-        #'suggestedBooks': [
-          #  {'bookId': '123', 'title': 'The Best Book', 'author': 'Author 1'},
-         #   {'bookId': '456', 'title': 'The Second Best Book', 'author': 'Author 2'}
-        #]
-    #}
-
-    #return order_status_response
+  
 
 
 if __name__ == '__main__':

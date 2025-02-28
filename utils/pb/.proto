@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+service FraudDetection {
+    rpc CheckFraud(FraudRequest) returns (FraudResponse);
+}
+
+message FraudRequest {
+    int32 order_id = 1;
+}
+
+message FraudResponse {
+    bool is_fraud = 1;
+}
