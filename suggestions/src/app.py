@@ -1,8 +1,16 @@
+import sys
+import os
+
 import grpc
 from concurrent import futures
 import logging
-import suggestions_pb2
-import suggestions_pb2_grpc
+
+
+sys.path.append('/app')
+
+
+from utils.pb.suggestions import suggestions_pb2
+from utils.pb.suggestions import suggestions_pb2_grpc
 
 class SuggestionsServicer(suggestions_pb2_grpc.SuggestionsServicer):
     def GetSuggestions(self, request, context):

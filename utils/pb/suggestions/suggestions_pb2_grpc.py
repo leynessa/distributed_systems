@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from fraud_detection import fraud_detection_pb2 as fraud__detection_dot_fraud__detection__pb2
+from suggestions import suggestions_pb2 as suggestions_dot_suggestions__pb2
 
 GRPC_GENERATED_VERSION = '1.70.0'
 GRPC_VERSION = grpc.__version__
@@ -18,14 +18,14 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in fraud_detection/fraud_detection_pb2_grpc.py depends on'
+        + f' but the generated code in suggestions/suggestions_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
     )
 
 
-class HelloServiceStub(object):
+class SuggestionsStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -34,43 +34,43 @@ class HelloServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.SayHello = channel.unary_unary(
-                '/hello.HelloService/SayHello',
-                request_serializer=fraud__detection_dot_fraud__detection__pb2.HelloRequest.SerializeToString,
-                response_deserializer=fraud__detection_dot_fraud__detection__pb2.HelloResponse.FromString,
+        self.GetSuggestions = channel.unary_unary(
+                '/Suggestions/GetSuggestions',
+                request_serializer=suggestions_dot_suggestions__pb2.SuggestionRequest.SerializeToString,
+                response_deserializer=suggestions_dot_suggestions__pb2.SuggestionResponse.FromString,
                 _registered_method=True)
 
 
-class HelloServiceServicer(object):
+class SuggestionsServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def SayHello(self, request, context):
+    def GetSuggestions(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_HelloServiceServicer_to_server(servicer, server):
+def add_SuggestionsServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'SayHello': grpc.unary_unary_rpc_method_handler(
-                    servicer.SayHello,
-                    request_deserializer=fraud__detection_dot_fraud__detection__pb2.HelloRequest.FromString,
-                    response_serializer=fraud__detection_dot_fraud__detection__pb2.HelloResponse.SerializeToString,
+            'GetSuggestions': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetSuggestions,
+                    request_deserializer=suggestions_dot_suggestions__pb2.SuggestionRequest.FromString,
+                    response_serializer=suggestions_dot_suggestions__pb2.SuggestionResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'hello.HelloService', rpc_method_handlers)
+            'Suggestions', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('hello.HelloService', rpc_method_handlers)
+    server.add_registered_method_handlers('Suggestions', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class HelloService(object):
+class Suggestions(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def SayHello(request,
+    def GetSuggestions(request,
             target,
             options=(),
             channel_credentials=None,
@@ -83,9 +83,9 @@ class HelloService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/hello.HelloService/SayHello',
-            fraud__detection_dot_fraud__detection__pb2.HelloRequest.SerializeToString,
-            fraud__detection_dot_fraud__detection__pb2.HelloResponse.FromString,
+            '/Suggestions/GetSuggestions',
+            suggestions_dot_suggestions__pb2.SuggestionRequest.SerializeToString,
+            suggestions_dot_suggestions__pb2.SuggestionResponse.FromString,
             options,
             channel_credentials,
             insecure,

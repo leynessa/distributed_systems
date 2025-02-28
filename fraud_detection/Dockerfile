@@ -5,11 +5,11 @@ FROM python:3.11
 # Both the utils and src folders will be mounted as volumes, please see docker-compose.yaml
 WORKDIR /app
 
-# Copy the requirements file to the working directory
-COPY ./fraud_detection/requirements.txt .
+# Copy requirements file
+COPY ./fraud_detection/requirements.txt /app/requirements.txt
 
 # Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Set the command to run the application
-CMD python utils/other/hotreload.py "fraud_detection/src/app.py"
+CMD ["python", "/app/utils/other/hotreload.py", "/app/fraud_detection/src/app.py"]

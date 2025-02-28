@@ -2,5 +2,3 @@ grpcio==1.43.0
 grpcio-tools==1.43.0
 protobuf==3.19.4
 watchdog==2.1.6
-flask==2.0.1
-flask-cors==3.0.10

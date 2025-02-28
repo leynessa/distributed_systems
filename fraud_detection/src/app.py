@@ -4,13 +4,19 @@ import grpc
 from concurrent import futures
 import logging
 
+sys.path.append('/app')
+
+
+#from other import hotreload
+from utils.pb.fraud_detection import fraud_detection_pb2
+from utils.pb.fraud_detection import fraud_detection_pb2_grpc
+
+
 # Ensure the correct import path for generated protobuf files
 FILE = __file__ if '__file__' in globals() else os.getenv("PYTHONFILE", "")
 fraud_detection_grpc_path = os.path.abspath(os.path.join(FILE, '../../../utils/pb/fraud_detection'))
 sys.path.insert(0, fraud_detection_grpc_path)
 
-import fraud_detection_pb2
-import fraud_detection_pb2_grpc
 
 # Fraud detection service implementation
 class FraudDetectionServicer(fraud_detection_pb2_grpc.FraudDetectionServicer):
