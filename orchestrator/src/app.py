@@ -44,7 +44,7 @@ def verify_transaction_api(order_data, results):
     #print("results", results)  # додайте це для дебагу
     url = "http://transaction_verification:50052/verify_transaction"  # Заміна localhost на ім'я сервісу
     try:
-        response = requests.get(url, json={"cardNumber": order_data['cardNumber']})
+        response = requests.get(url, json={"creditCard": order_data['creditCard']})
         response.raise_for_status()
         results['transaction_valid'] = response.json()["isValid"]
     except requests.RequestException as e:
@@ -99,7 +99,7 @@ async def checkout(request: Request):
         'userId': request_data.get('userId', ''),
         'items': request_data.get('items', []),
         'totalAmount': request_data.get('totalAmount', 0.0),
-        'cardNumber': request_data.get('cardNumber', '0000000000000000'),
+        'creditCard': request_data.get('creditCard', '0000000000000000'),
     }
     results = {}
 

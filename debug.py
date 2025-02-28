@@ -10,7 +10,7 @@ order_data = {
         {'itemId': 'item002', 'quantity': 1, 'price': 10.0}
     ],
     'totalAmount': 51.0,
-    'cardNumber': '1234567890123456'  
+    'creditCard': '1234567890123456'  
 }
 
 # Переклад даних в JSON
