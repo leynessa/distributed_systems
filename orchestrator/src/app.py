@@ -52,22 +52,29 @@ def verify_transaction_api(order_data, results):
         print(f"Error contacting transaction verification service: {e}")
 
 
-def get_suggestions_api(results):
-    url = "http://suggestions:50053/get_suggestions"
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        suggestions_data = response.json()
-                
-        # Перевірка, чи це список і обробка відповідно
-        if isinstance(suggestions_data, list):
-            results['suggestions'] = suggestions_data  # Якщо це список
-        else:
-            results['suggestions'] = suggestions_data.get("bookSuggestions", [])  # Якщо це словник
-    except requests.RequestException as e:
-        results['suggestions'] = None
-        print(f"Error contacting suggestions service: {e}")
+import grpc
+from . import books_pb2
+from . import books_pb2_grpc
 
+def get_suggestions_api(results):
+    try:
+        # Establish a connection to the gRPC server
+        with grpc.insecure_channel('suggestions:50053') as channel:
+            stub = books_pb2_grpc.BookServiceStub(channel)
+
+            # Create the BookRequest message (you can add parameters if needed)
+            request = books_pb2.BookRequest()  # No parameters specified in the proto for this request
+            response = stub.GetSuggestions(request)
+
+            # Process the response
+            if response.books:
+                results['suggestions'] = [{'title': book.title, 'author': book.author} for book in response.books]
+            else:
+                results['suggestions'] = []
+
+    except grpc.RpcError as e:
+        results['suggestions'] = None
+        print(f"Error contacting suggestions service: {e.details()}")
 
 
 # The process_order function to handle the orchestration of the gRPC calls

@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package books;
+
+service BookService {
+  rpc GetSuggestions (BookRequest) returns (BookList);
+}
+
+message BookRequest {}
+
+message Book {
+  string title = 1;
+  string author = 2;
+}
+
+message BookList {
+  repeated Book books = 1;
+}

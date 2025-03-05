@@ -1,8 +1,10 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+import grpc
+from concurrent import futures
 import random
 
-app = FastAPI()
+
+from . import books_pb2
+from . import books_pb2_grpc
 
 # Example book list
 books_list = [
@@ -16,10 +18,28 @@ books_list = [
     {"title": "The Hobbit", "author": "J.R.R. Tolkien"}
 ]
 
-@app.get("/get_suggestions")
-def get_suggestions():
-    num_suggestions = 3  # Кількість книг для повернення
-    if len(books_list) < num_suggestions:
-        num_suggestions = len(books_list)
-    
-    return random.sample(books_list, num_suggestions)
+class BookService(books_pb2_grpc.BookServiceServicer):
+    def GetSuggestions(self, request, context):
+        num_suggestions = 3  # Кількість книг для повернення
+        if len(books_list) < num_suggestions:
+            num_suggestions = len(books_list)
+        
+        selected_books = random.sample(books_list, num_suggestions)
+        response = books_pb2.BookList()
+        
+        for book in selected_books:
+            response.books.add(title=book["title"], author=book["author"])
+        
+        return response
+
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    books_pb2_grpc.add_BookServiceServicer_to_server(BookService(), server)
+    server.add_insecure_port('[::]:50053')
+    server.start()
+    server.wait_for_termination()
+
+if __name__ == "__main__":
+    print(1.2)
+    serve()
+

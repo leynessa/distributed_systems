@@ -1,15 +1,21 @@
-# Use an official Python runtime as the base image
+# Використовуємо офіційний образ Python
 FROM python:3.11
 
-# Set the working directory in the container
-# Both the utils and src folders will be mounted as volumes, please see docker-compose.yaml
+# Встановлюємо робочу директорію
 WORKDIR /app
 
-# Copy the requirements file to the working directory
+# Копіюємо файл залежностей
 COPY ./microservices/suggestions/requirements.txt .
 
-# Install the Python dependencies
+# Встановлюємо Python-залежності
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Set the command to run the application
-CMD uvicorn microservices.suggestions.src.suggestions:app --reload --host 0.0.0.0 --port 50053
+# Копіюємо код мікросервісу
+COPY ./microservices/suggestions /app/microservices/suggestions
+
+# Виставляємо порт (gRPC за замовчуванням працює на 50051)
+EXPOSE 50053
+
+# Команда для запуску gRPC-сервера
+CMD ["python", "-m", "microservices.suggestions.src.suggestions"]
+
