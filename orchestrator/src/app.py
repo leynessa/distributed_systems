@@ -1,6 +1,7 @@
 import sys
 import os
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
+
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import threading
@@ -29,7 +30,7 @@ app.add_middleware(
 import requests
 
 def check_fraud_api(order_data, results):
-    url = "http://fraud_detection:50051/check_fraud"  # Заміна localhost на ім'я сервісу
+    url = "http://fraud_detection:50051/check_fraud"
     try:
         response = requests.get(url, json={"orderId": order_data['orderId']})
         response.raise_for_status()
@@ -40,16 +41,16 @@ def check_fraud_api(order_data, results):
 
 
 def verify_transaction_api(order_data, results):
-    print("order_data", order_data)  # додайте це для дебагу
-    #print("results", results)  # додайте це для дебагу
-    url = "http://transaction_verification:50052/verify_transaction"  # Заміна localhost на ім'я сервісу
+    print("order_data", order_data)
+    url = "http://transaction_verification:50052/verify_transaction"
     try:
-        response = requests.get(url, json={"creditCard": order_data['creditCard']})
+        response = requests.post(url, json={"creditCard": order_data['creditCard']})
         response.raise_for_status()
         results['transaction_valid'] = response.json()["isValid"]
     except requests.RequestException as e:
         results['transaction_valid'] = None
         print(f"Error contacting transaction verification service: {e}")
+
 
 
 import grpc
@@ -81,8 +82,8 @@ def get_suggestions_api(results):
 def process_order(order_data, results):
     # Create threads for gRPC calls
     fraud_thread = threading.Thread(target=check_fraud_api, args=(order_data, results))
-    suggestions_thread = threading.Thread(target=get_suggestions_api, args=(results,))  # corrected
-    transaction_thread = threading.Thread(target=verify_transaction_api, args=(order_data, results))  # corrected
+    suggestions_thread = threading.Thread(target=get_suggestions_api, args=(results,))
+    transaction_thread = threading.Thread(target=verify_transaction_api, args=(order_data, results))
     # Start threads
     fraud_thread.start()
     transaction_thread.start()
@@ -93,32 +94,39 @@ def process_order(order_data, results):
     transaction_thread.join()
     suggestions_thread.join()
 
-@app.get("/checkout")
+@app.post("/checkout")
 async def checkout(request: Request):
     """
     Responds with a JSON object containing the order ID, status, and suggested books.
     """
-    # Get request object data to json
-    request_data = await request.json()
+    try:
+        request_data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
 
     order_data = {
         'orderId': request_data.get('orderId', '12345'),
         'userId': request_data.get('userId', ''),
         'items': request_data.get('items', []),
         'totalAmount': request_data.get('totalAmount', 0.0),
-        'creditCard': request_data.get('creditCard', '0000000000000000'),
+        'creditCard': request_data.get('creditCard'),
     }
     results = {}
 
     # Process order (API calls in parallel)
     process_order(order_data, results)
 
-    # Construct response
-    order_status_response = {
-        'orderId': order_data['orderId'],
-        'FraudStatus': results.get('fraud', False),  # Store fraud as a boolean (True/False)
-        'transactionStatus': results.get('transaction_valid'),  # Include transaction status
-        'suggestedBooks': results.get('suggestions', [])
-    }
-
-    return JSONResponse(content=order_status_response)
+    if results.get('fraud', False) and results.get('fraud', False):
+        response_json = {
+            'status': 'Order Approved',
+            'orderId': order_data['orderId'],
+            'suggestedBooks': results.get('suggestions', [])
+        }
+        return response_json
+    else:
+        response_json = {
+            'status': 'Order Rejected',
+            'orderId': order_data['orderId'],
+            'error': {'message': 'Fraud detected or transaction invalid'}
+        }
+        return response_json

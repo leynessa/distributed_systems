@@ -20,7 +20,7 @@ books_list = [
 
 class BookService(books_pb2_grpc.BookServiceServicer):
     def GetSuggestions(self, request, context):
-        num_suggestions = 3  # Кількість книг для повернення
+        num_suggestions = 3
         if len(books_list) < num_suggestions:
             num_suggestions = len(books_list)
         

@@ -1,7 +1,7 @@
 import requests
 import json
 
-# Створення даних для запиту
+# Creating data for the request
 order_data = {
     'orderId': '12345',
     'userId': 'user001',
@@ -10,22 +10,27 @@ order_data = {
         {'itemId': 'item002', 'quantity': 1, 'price': 10.0}
     ],
     'totalAmount': 51.0,
-    'creditCard': '1234567890123456'
+    'creditCard': {
+        'number': '4111111111111111',
+        'expirationDate': '12/25',
+        'cvv': '123'
+    }
 }
 
-# Переклад даних в JSON
+# Converting data to JSON
 json_data = json.dumps(order_data)
 
-# Відправка GET запиту з JSON даними
+# Sending a GET request with JSON data
 url = "http://localhost:8081/checkout"
 headers = {'Content-Type': 'application/json'}
 
-# Відправляємо GET запит з параметрами в тілі
-response = requests.get(url, headers=headers, data=json_data)
+# Sending a GET request with parameters in the body
+response = requests.post(url, headers=headers, data=json_data)
 
-# Перевірка статусу відповіді
+# Checking the response status
 if response.status_code == 200:
-    print("request success. get response:")
-    print(response.json())  # Вивести відповідь у вигляді JSON
+    print("Request successful. Response received:")
+    print(response.json())  # Print the response as JSON
 else:
-    print(f"bad request. status code: {response.status_code}")
+    print(f"Bad request. Status code: {response.status_code}")
+
