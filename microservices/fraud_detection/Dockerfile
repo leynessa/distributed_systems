@@ -11,5 +11,7 @@ COPY ./microservices/fraud_detection/requirements.txt .
 # Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+EXPOSE 50051
+
 # Set the command to run the application
-CMD uvicorn microservices.fraud_detection.src.fraud_detection:app --reload --host 0.0.0.0 --port 50051
+CMD python -m microservices.fraud_detection.src.fraud_detection

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package fraud;
+
+service FraudChecker {
+  rpc CheckFraud (FraudRequest) returns (FraudResponse);
+}
+
+message FraudRequest {
+  string orderId = 1;
+}
+
+message FraudResponse {
+  bool isFraudulent = 1;
+}

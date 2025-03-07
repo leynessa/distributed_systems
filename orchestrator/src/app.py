@@ -28,14 +28,20 @@ app.add_middleware(
 
 
 import requests
+import grpc
+
+from . import fraud_pb2
+from . import fraud_pb2_grpc
 
 def check_fraud_api(order_data, results):
-    url = "http://fraud_detection:50051/check_fraud"
+    channel = grpc.insecure_channel("fraud_detection:50051")
+    stub = fraud_pb2_grpc.FraudCheckerStub(channel)
     try:
-        response = requests.get(url, json={"orderId": order_data['orderId']})
-        response.raise_for_status()
-        results['fraud'] = response.json()["isFraudulent"]
-    except requests.RequestException as e:
+        request = fraud_pb2.FraudRequest(orderId=order_data['orderId'])
+        response = stub.CheckFraud(request)
+        print(response)
+        results['fraud'] = response.isFraudulent
+    except grpc.RpcError as e:
         results['fraud'] = None
         print(f"Error contacting fraud detection service: {e}")
 
@@ -52,8 +58,6 @@ def verify_transaction_api(order_data, results):
         print(f"Error contacting transaction verification service: {e}")
 
 
-
-import grpc
 from . import books_pb2
 from . import books_pb2_grpc
 
