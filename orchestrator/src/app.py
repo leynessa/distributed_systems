@@ -120,7 +120,7 @@ async def checkout(request: Request):
     # Process order (API calls in parallel)
     process_order(order_data, results)
 
-    if results.get('fraud', False) and results.get('fraud', False):
+    if not results.get('fraud', True) and results.get('transaction_valid', False):
         response_json = {
             'status': 'Order Approved',
             'orderId': order_data['orderId'],
