@@ -3,14 +3,15 @@ from concurrent import futures
 import json
 from openai import OpenAI
 import re
+# Add the path to the utils/pb/src directory
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../utils/pb/src')))
 
-from utils.pb.src  import books_pb2
-from utils.pb.src  import books_pb2_grpc
+from utils.pb.src import books_pb2, books_pb2_grpc
 
 import os
 from dotenv import load_dotenv
 import sys
-sys.path.append('/app/utils/pb/src')  # Adjust if necessary
+
 
 load_dotenv()
 

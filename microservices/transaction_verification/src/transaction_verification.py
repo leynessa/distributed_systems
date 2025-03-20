@@ -2,11 +2,9 @@ import grpc
 from concurrent import futures
 import random
 import sys
-sys.path.append('/app/utils/pb/src')  # Adjust if necessary
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../utils/pb/src')))
 
-
-from utils.pb.src  import transaction_pb2
-from utils.pb.src  import transaction_pb2_grpc
+from utils.pb.src import transaction_pb2, transaction_pb2_grpc
 
 class TransactionVerifierServicer(transaction_pb2_grpc.TransactionVerifierServicer):
     def VerifyTransaction(self, request, context):

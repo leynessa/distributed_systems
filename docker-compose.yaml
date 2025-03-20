@@ -27,7 +27,9 @@ services:
       - PYTHONUNBUFFERED=TRUE
     volumes:
       - ./utils/pb/src:/app/utils/pb/src
-      - ./orchestrator/src:/app/orchestrator/src
+      - ./orchestrator/src:/app
+    networks:
+      - app-network
   fraud_detection:
     build:
       context: ./microservices/fraud_detection/src
@@ -40,7 +42,7 @@ services:
       - PYTHONUNBUFFERED=TRUE
     volumes:
       - ./utils/pb/src:/app/utils/pb/src
-      - ./microservices/fraud_detection/src:/app/microservices/fraud_detection/src
+      - ./microservices/fraud_detection/src:/app
     networks:
       - app-network
 
@@ -54,7 +56,7 @@ services:
       - PYTHONUNBUFFERED=TRUE
     volumes:
       - ./utils/pb/src:/app/utils/pb/src
-      - ./microservices/transaction_verification/src:/app/microservices/transaction_verification/src
+      - ./microservices/transaction_verification/src:/app
     networks:
       - app-network
 
@@ -70,7 +72,7 @@ services:
       - PYTHONUNBUFFERED=TRUE
     volumes:
       - ./utils/pb/src:/app/utils/pb/src
-      - ./microservices/suggestions/src:/app/microservices/suggestions/src
+      - ./microservices/suggestions/src:/app
     networks:
       - app-network
 

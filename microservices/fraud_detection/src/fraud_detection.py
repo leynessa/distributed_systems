@@ -4,9 +4,12 @@ import grpc
 from concurrent import futures
 import random
 
+
 # Add the path to the utils/pb/src directory
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../utils/pb/src')))
 
+
+from utils.pb.src import fraud_detection_pb2, fraud_detection_pb2_grpc
 # Debug: Print the Python path
 print("Python Path:", sys.path)
 
