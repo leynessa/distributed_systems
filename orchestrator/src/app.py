@@ -39,7 +39,6 @@ def check_fraud_api(order_data, results):
     try:
         request = fraud_pb2.FraudRequest(orderId=order_data['orderId'])
         response = stub.CheckFraud(request)
-        print(response)
         results['fraud'] = response.isFraudulent
     except grpc.RpcError as e:
         results['fraud'] = None
@@ -47,7 +46,6 @@ def check_fraud_api(order_data, results):
 
 
 def verify_transaction_api(order_data, results):
-    print("order_data", order_data)
     url = "http://transaction_verification:50052/verify_transaction"
     try:
         response = requests.post(url, json={"creditCard": order_data['creditCard']})
@@ -61,7 +59,7 @@ def verify_transaction_api(order_data, results):
 from . import books_pb2
 from . import books_pb2_grpc
 
-def get_suggestions_api(results):
+def get_suggestions_api(order_data, results):
     try:
         # Establish a connection to the gRPC server
         with grpc.insecure_channel('suggestions:50053') as channel:
@@ -82,21 +80,48 @@ def get_suggestions_api(results):
         print(f"Error contacting suggestions service: {e.details()}")
 
 
+import uuid
+
 # The process_order function to handle the orchestration of the gRPC calls
 def process_order(order_data, results):
+    # Generate unique order ID
+    order_data['orderId'] = str(uuid.uuid4())
+    print(f"Generated Order ID: {order_data['orderId']}")
+    
+    # Initialize vector clock
+    order_data['vectorClock'] = [0, 0, 0]  # fraud_thread, transaction_thread, suggestions_thread
+    
+    def check_fraud():
+        order_data['vectorClock'][0] += 1  # Update fraud_thread timestamp before call
+        check_fraud_api(order_data, results)  # Pass order_data with vector clock
+    
+    def verify_transaction():
+        fraud_thread.join()  # Ensure fraud check completes first
+        order_data['vectorClock'][1] += 1  # Update transaction_thread timestamp before call
+        verify_transaction_api(order_data, results)  # Pass order_data with vector clock
+    
+    def get_suggestions():
+        transaction_thread.join()  # Ensure transaction check completes first
+        order_data['vectorClock'][2] += 1  # Update suggestions_thread timestamp before call
+        get_suggestions_api(order_data, results)  # Pass order_data with vector clock
+    
     # Create threads for gRPC calls
-    fraud_thread = threading.Thread(target=check_fraud_api, args=(order_data, results))
-    suggestions_thread = threading.Thread(target=get_suggestions_api, args=(results,))
-    transaction_thread = threading.Thread(target=verify_transaction_api, args=(order_data, results))
+    fraud_thread = threading.Thread(target=check_fraud)
+    transaction_thread = threading.Thread(target=verify_transaction)
+    suggestions_thread = threading.Thread(target=get_suggestions)
+    
     # Start threads
     fraud_thread.start()
-    transaction_thread.start()
-    suggestions_thread.start()
-
-    # Wait for all threads to finish
     fraud_thread.join()
+    
+    transaction_thread.start()
     transaction_thread.join()
+    
+    suggestions_thread.start()
     suggestions_thread.join()
+    
+    print(f"Order processing completed. Vector Clock: {order_data['vectorClock']}")
+
 
 @app.post("/checkout")
 async def checkout(request: Request):

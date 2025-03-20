@@ -7,7 +7,6 @@ from . import fraud_pb2_grpc
 class FraudCheckerServicer(fraud_pb2_grpc.FraudCheckerServicer):
     def CheckFraud(self, request, context):
         is_fraudulent = random.choice([True, False])
-        print(is_fraudulent)
         return fraud_pb2.FraudResponse(isFraudulent=is_fraudulent)
 
 def serve():

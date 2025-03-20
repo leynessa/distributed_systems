@@ -25,7 +25,6 @@ def verify_transaction(request: TransactionRequest):
             bool(re.match(r"^\d{3}$", creditCard.cvv))
         )
     
-    print(request)
     # Validate the credit card fields
     is_valid = is_valid_credit_card(request.creditCard)
     

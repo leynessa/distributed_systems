@@ -29,7 +29,7 @@ def fetch_books_from_gpt():
             messages=messages,
         )
         response_content = response.choices[0].message.content.strip()
-        print(response_content)
+        #print(response_content)
         cleaned_content = re.sub(r"```json\n(.*?)\n```", r"\1", response_content, flags=re.DOTALL).strip()
 
         books_json = json.loads(cleaned_content)
