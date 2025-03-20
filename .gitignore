@@ -1,1 +1,15 @@
+<<<<<<< Updated upstream
 __pycache__
+=======
+__pycache__
+.env
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.idea
+.vscode
+dist
+build
+*.egg-info
+>>>>>>> Stashed changes

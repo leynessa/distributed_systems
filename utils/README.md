@@ -28,3 +28,86 @@ Note: The generated code is not meant to be edited manually. If you need to make
 ## Other
 
 In the folder `other` you can find the python script `hotreload.py` that can be used to restart a service when changes to the code are made. This script is used by each Docker container as the entrypoint, and it listens for changes in each container `/app` folder, restarting the respective service. This way, you can code without having to restart any containers manually.
+
+
+/distributed_systems
+│
+├── README.md
+├── .gitignore
+├── debug.py
+├── docker-compose.yaml
+├── generate_protos.py
+│
+├── frontend
+│   └── src
+│       ├── index.html
+│       └── Dockerfile
+│
+├── microservices
+│   ├── fraud_detection
+│   │   └── src
+│   │       ├── __pycache__
+│   │       │   ├── fraud_detection.cpython-311.pyc
+│   │       │   ├── fraud_pb2_grpc.cpython-311.pyc
+│   │       │   └── fraud_pb2.cpython-311.pyc
+│   │       ├── fraud_detection.py
+│   │       ├── fraud.proto
+│   │       ├── Dockerfile
+│   │       └── requirements.txt
+│   │
+│   ├── suggestions
+│   │   └── src
+│   │       ├── __pycache__
+│   │       │   ├── __init__.cpython-311.pyc
+│   │       │   ├── books_pb2_grpc.cpython-311.pyc
+│   │       │   ├── books_pb2.cpython-311.pyc
+│   │       │   └── suggestions.cpython-311.pyc
+│   │       ├── __init__.py
+│   │       ├── .env
+│   │       ├── books.proto
+│   │       ├── suggestions.py
+│   │       ├── Dockerfile
+│   │       └── requirements.txt
+│   │
+│   └── transaction_verification
+│       └── src
+│           ├── __pycache__
+│           │   ├── transaction_pb2_grpc.cpython-311.pyc
+│           │   ├── transaction_pb2.cpython-311.pyc
+│           │   ├── transaction_pb2.cpython-313.pyc
+│           │   └── transaction_verification.cpython-311.pyc
+│           ├── transaction_verification.py
+│           ├── transaction.proto
+│           ├── Dockerfile
+│           └── requirements.txt
+│
+├── orchestrator
+│   └── src
+│       ├── __pycache__
+│       │   ├── app.cpython-311.pyc
+│       │   ├── books_pb2_grpc.cpython-311.pyc
+│       │   ├── books_pb2.cpython-311.pyc
+│       │   ├── fraud_pb2_grpc.cpython-311.pyc
+│       │   ├── fraud_pb2.cpython-311.pyc
+│       │   ├── transaction_pb2_grpc.cpython-311.pyc
+│       │   └── transaction_pb2.cpython-311.pyc
+│       ├── app.py
+│       ├──
+│       ├── Dockerfile
+│       └── requirements.txt
+│
+└── utils
+    ├── api
+    └── pb
+        ├── fraud_detection
+        │   ├── __pycache__
+        │   │   ├── fraud_detection_pb2_grpc.cpython-311.pyc
+        │   │   └── fraud_detection_pb2.cpython-311.pyc
+        │
+        └── src
+            ├── books_pb2_grpc.py
+            ├── books_pb2.py
+            ├── fraud_pb2_grpc.py
+            ├── fraud_pb2.py
+            ├── transaction_pb2_grpc.py
+            └── transaction_pb2.py

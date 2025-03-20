@@ -1,11 +1,17 @@
-version: '3'
+version: "3.8"
+
 services:
   frontend:
     build:
+<<<<<<< Updated upstream
       # Use the current directory as the build context
       # This allows us to access the files in the current directory inside the Dockerfile
       context: ./
       dockerfile: ./frontend/Dockerfile
+=======
+      context: ./frontend/src
+      dockerfile: Dockerfile
+>>>>>>> Stashed changes
     ports:
       # Expose port 8080 on the host, and map port 80 of the container to port 8080 on the host
       # Access the application at http://localhost:8080
@@ -13,6 +19,7 @@ services:
     volumes:
       # Mount the frontend directory
       - ./frontend/src:/usr/share/nginx/html
+<<<<<<< Updated upstream
   orchestrator:
     build:
       # Use the current directory as the build context
@@ -23,10 +30,22 @@ services:
     ports:
       # Expose port 8081 on the host, and map port 5000 of the container to port 8081 on the host
       - 8081:5000
+=======
+    networks:
+      - app-network
+
+  orchestrator:
+    build:
+      context: ./orchestrator/src
+      dockerfile: Dockerfile
+    ports:
+      - "8081:5000"
+>>>>>>> Stashed changes
     environment:
       # Pass the environment variables to the container
       # The PYTHONUNBUFFERED environment variable ensures that the output from the application is logged to the console
       - PYTHONUNBUFFERED=TRUE
+<<<<<<< Updated upstream
       # The PYTHONFILE environment variable specifies the absolute entry point of the application
       # Check app.py in the orchestrator directory to see how this is used
       - PYTHONFILE=/app/orchestrator/src/app.py
@@ -34,9 +53,14 @@ services:
       # Mount the utils directory in the current directory to the /app/utils directory in the container
       - ./utils:/app/utils
       # Mount the orchestrator/src directory in the current directory to the /app/orchestrator/src directory in the container
+=======
+    volumes:
+      - ./utils/pb/src:/app/utils/pb/src
+>>>>>>> Stashed changes
       - ./orchestrator/src:/app/orchestrator/src
   fraud_detection:
     build:
+<<<<<<< Updated upstream
       # Use the current directory as the build context
       # This allows us to access the files in the current directory inside the Dockerfile
       context: ./
@@ -45,10 +69,17 @@ services:
     ports:
       # Expose port 50051 on the host, and map port 50051 of the container to port 50051 on the host
       - 50051:50051
+=======
+      context: ./microservices/fraud_detection/src
+      dockerfile: Dockerfile
+    ports:
+      - "50051:50051"
+>>>>>>> Stashed changes
     environment:
       # Pass the environment variables to the container
       # The PYTHONUNBUFFERED environment variable ensures that the output from the application is logged to the console
       - PYTHONUNBUFFERED=TRUE
+<<<<<<< Updated upstream
       # The PYTHONFILE environment variable specifies the absolute entry point of the application
       # Check app.py in the fraud_detection directory to see how this is used
       - PYTHONFILE=/app/fraud_detection/src/app.py
@@ -57,3 +88,44 @@ services:
       - ./utils:/app/utils
       # Mount the fraud_detection/src directory in the current directory to the /app/fraud_detection/src directory in the container
       - ./fraud_detection/src:/app/fraud_detection/src
+=======
+    volumes:
+      - ./utils/pb/src:/app/utils/pb/src
+      - ./microservices/fraud_detection/src:/app/microservices/fraud_detection/src
+    networks:
+      - app-network
+
+  transaction_verification:
+    build:
+      context: ./microservices/transaction_verification/src
+      dockerfile: Dockerfile
+    ports:
+      - "50052:50052"
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+    volumes:
+      - ./utils/pb/src:/app/utils/pb/src
+      - ./microservices/transaction_verification/src:/app/microservices/transaction_verification/src
+    networks:
+      - app-network
+
+  suggestions:
+    build:
+      context: ./microservices/suggestions/src
+      dockerfile: Dockerfile
+    env_file:
+      - ./microservices/suggestions/src/.env
+    ports:
+      - "50053:50053"
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+    volumes:
+      - ./utils/pb/src:/app/utils/pb/src
+      - ./microservices/suggestions/src:/app/microservices/suggestions/src
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+>>>>>>> Stashed changes
