@@ -9,6 +9,8 @@ from utils.pb.src  import books_pb2_grpc
 
 import os
 from dotenv import load_dotenv
+import sys
+sys.path.append('/app/utils/pb/src')  # Adjust if necessary
 
 load_dotenv()
 

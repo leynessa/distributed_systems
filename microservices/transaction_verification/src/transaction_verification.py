@@ -1,6 +1,9 @@
 import grpc
 from concurrent import futures
 import random
+import sys
+sys.path.append('/app/utils/pb/src')  # Adjust if necessary
+
 
 from utils.pb.src  import transaction_pb2
 from utils.pb.src  import transaction_pb2_grpc

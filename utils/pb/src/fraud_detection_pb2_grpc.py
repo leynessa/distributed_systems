@@ -3,10 +3,7 @@
 import grpc
 import warnings
 
-<<<<<<<< Updated upstream:utils/pb/fraud_detection/fraud_detection_pb2_grpc.py
 import fraud_detection_pb2 as fraud__detection__pb2
-========
-import fraud_pb2 as fraud__pb2
 
 GRPC_GENERATED_VERSION = '1.71.0'
 GRPC_VERSION = grpc.__version__
@@ -21,12 +18,11 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in fraud_pb2_grpc.py depends on'
+        + f' but the generated code in fraud_detection_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
     )
->>>>>>>> Stashed changes:utils/pb/src/fraud_pb2_grpc.py
 
 
 class HelloServiceStub(object):
@@ -38,19 +34,11 @@ class HelloServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-<<<<<<<< Updated upstream:utils/pb/fraud_detection/fraud_detection_pb2_grpc.py
         self.SayHello = channel.unary_unary(
                 '/hello.HelloService/SayHello',
                 request_serializer=fraud__detection__pb2.HelloRequest.SerializeToString,
                 response_deserializer=fraud__detection__pb2.HelloResponse.FromString,
-                )
-========
-        self.CheckFraud = channel.unary_unary(
-                '/fraud.FraudChecker/CheckFraud',
-                request_serializer=fraud__pb2.FraudRequest.SerializeToString,
-                response_deserializer=fraud__pb2.FraudResponse.FromString,
                 _registered_method=True)
->>>>>>>> Stashed changes:utils/pb/src/fraud_pb2_grpc.py
 
 
 class HelloServiceServicer(object):
@@ -74,7 +62,7 @@ def add_HelloServiceServicer_to_server(servicer, server):
     generic_handler = grpc.method_handlers_generic_handler(
             'hello.HelloService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('fraud.FraudChecker', rpc_method_handlers)
+    server.add_registered_method_handlers('hello.HelloService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -92,19 +80,12 @@ class HelloService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-<<<<<<<< Updated upstream:utils/pb/fraud_detection/fraud_detection_pb2_grpc.py
-        return grpc.experimental.unary_unary(request, target, '/hello.HelloService/SayHello',
-            fraud__detection__pb2.HelloRequest.SerializeToString,
-            fraud__detection__pb2.HelloResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-========
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/fraud.FraudChecker/CheckFraud',
-            fraud__pb2.FraudRequest.SerializeToString,
-            fraud__pb2.FraudResponse.FromString,
+            '/hello.HelloService/SayHello',
+            fraud__detection__pb2.HelloRequest.SerializeToString,
+            fraud__detection__pb2.HelloResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -114,4 +95,3 @@ class HelloService(object):
             timeout,
             metadata,
             _registered_method=True)
->>>>>>>> Stashed changes:utils/pb/src/fraud_pb2_grpc.py

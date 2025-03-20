@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0b\x62ooks.proto\x12\x05\x62ooks\"\r\n\x0b\x42ookRequest\"%\n\x04\x42ook\x12\r\n\x05title\x18\x01 \x01(\t\x12\x0e\n\x06\x61uthor\x18\x02 \x01(\t\"&\n\x08\x42ookList\x12\x1a\n\x05\x62ooks\x18\x01 \x03(\x0b\x32\x0b.books.Book2D\n\x0b\x42ookService\x12\x35\n\x0eGetSuggestions\x12\x12.books.BookRequest\x1a\x0f.books.BookListb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0b\x62ooks.proto\x12\x05\x62ooks\"\r\n\x0b\x42ookRequest\"&\n\x08\x42ookList\x12\x1a\n\x05\x62ooks\x18\x01 \x03(\x0b\x32\x0b.books.Book\"%\n\x04\x42ook\x12\r\n\x05title\x18\x01 \x01(\t\x12\x0e\n\x06\x61uthor\x18\x02 \x01(\t2D\n\x0b\x42ookService\x12\x35\n\x0eGetSuggestions\x12\x12.books.BookRequest\x1a\x0f.books.BookListb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,10 +33,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_BOOKREQUEST']._serialized_start=22
   _globals['_BOOKREQUEST']._serialized_end=35
-  _globals['_BOOK']._serialized_start=37
-  _globals['_BOOK']._serialized_end=74
-  _globals['_BOOKLIST']._serialized_start=76
-  _globals['_BOOKLIST']._serialized_end=114
+  _globals['_BOOKLIST']._serialized_start=37
+  _globals['_BOOKLIST']._serialized_end=75
+  _globals['_BOOK']._serialized_start=77
+  _globals['_BOOK']._serialized_end=114
   _globals['_BOOKSERVICE']._serialized_start=116
   _globals['_BOOKSERVICE']._serialized_end=184
 # @@protoc_insertion_point(module_scope)
