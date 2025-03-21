@@ -1,31 +1,29 @@
-from fastapi import FastAPI
-from pydantic import BaseModel, Field
+import grpc
+from concurrent import futures
 import re
 
-app = FastAPI()
+from . import transaction_pb2
+from . import transaction_pb2_grpc
 
-class CreditCard(BaseModel):
-    number: str = Field(..., pattern=r"^\d{16}$")
-    expirationDate: str = Field(..., pattern=r"^(0[1-9]|1[0-2])/\d{2}$")
-    cvv: str = Field(..., pattern=r"^\d{3}$")
+class TransactionService(transaction_pb2_grpc.TransactionServiceServicer):
+    def VerifyTransaction(self, request, context):
+        def is_valid_credit_card(credit_card):
+            return (
+                bool(re.match(r"^\d{16}$", credit_card.number)) and
+                bool(re.match(r"^(0[1-9]|1[0-2])/\d{2}$", credit_card.expirationDate)) and
+                bool(re.match(r"^\d{3}$", credit_card.cvv))
+            )
 
-class TransactionRequest(BaseModel):
-    creditCard: CreditCard
+        is_valid = is_valid_credit_card(request.creditCard)
+        return transaction_pb2.TransactionResponse(isValid=is_valid)
 
-class TransactionResponse(BaseModel):
-    isValid: bool
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    transaction_pb2_grpc.add_TransactionServiceServicer_to_server(TransactionService(), server)
+    server.add_insecure_port("[::]:50051")
+    print("gRPC server is running on port 50051...")
+    server.start()
+    server.wait_for_termination()
 
-@app.post("/verify_transaction", response_model=TransactionResponse)  # Change to POST
-def verify_transaction(request: TransactionRequest):
-    def is_valid_credit_card(creditCard: CreditCard):
-        # Check if the card number, expiration date, and CVV are valid
-        return (
-            bool(re.match(r"^\d{16}$", creditCard.number)) and
-            bool(re.match(r"^(0[1-9]|1[0-2])/\d{2}$", creditCard.expirationDate)) and
-            bool(re.match(r"^\d{3}$", creditCard.cvv))
-        )
-    
-    # Validate the credit card fields
-    is_valid = is_valid_credit_card(request.creditCard)
-    
-    return TransactionResponse(isValid=is_valid)
+if __name__ == "__main__":
+    serve()

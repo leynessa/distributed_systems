@@ -45,13 +45,25 @@ def check_fraud_api(order_data, results):
         print(f"Error contacting fraud detection service: {e}")
 
 
+from . import transaction_pb2
+from . import transaction_pb2_grpc
+
 def verify_transaction_api(order_data, results):
-    url = "http://transaction_verification:50052/verify_transaction"
+    channel = grpc.insecure_channel("transaction_verification:50051")
+    stub = transaction_pb2_grpc.TransactionServiceStub(channel)
+    
+    credit_card = transaction_pb2.CreditCard(
+        number=order_data['creditCard']['number'],
+        expirationDate=order_data['creditCard']['expirationDate'],
+        cvv=order_data['creditCard']['cvv']
+    )
+    
+    request = transaction_pb2.TransactionRequest(creditCard=credit_card)
+    
     try:
-        response = requests.post(url, json={"creditCard": order_data['creditCard']})
-        response.raise_for_status()
-        results['transaction_valid'] = response.json()["isValid"]
-    except requests.RequestException as e:
+        response = stub.VerifyTransaction(request)
+        results['transaction_valid'] = response.isValid
+    except grpc.RpcError as e:
         results['transaction_valid'] = None
         print(f"Error contacting transaction verification service: {e}")
 

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package transaction;
+
+message CreditCard {
+    string number = 1;
+    string expirationDate = 2;
+    string cvv = 3;
+}
+
+message TransactionRequest {
+    CreditCard creditCard = 1;
+}
+
+message TransactionResponse {
+    bool isValid = 1;
+}
+
+service TransactionService {
+    rpc VerifyTransaction (TransactionRequest) returns (TransactionResponse);
+}

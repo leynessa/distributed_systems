@@ -1,15 +1,13 @@
-# Use an official Python runtime as the base image
 FROM python:3.11
 
-# Set the working directory in the container
-# Both the utils and src folders will be mounted as volumes, please see docker-compose.yaml
 WORKDIR /app
 
-# Copy the requirements file to the working directory
 COPY ./microservices/transaction_verification/requirements.txt .
 
-# Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Set the command to run the application
-CMD uvicorn microservices.transaction_verification.src.transaction_verification:app --reload --host 0.0.0.0 --port 50052
+COPY ./microservices/transaction_verification /app/microservices/transaction_verification
+
+EXPOSE 50052
+
+CMD python -m microservices.transaction_verification.src.transaction_verification
