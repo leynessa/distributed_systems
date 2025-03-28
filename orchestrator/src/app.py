@@ -86,6 +86,7 @@ def verify_transaction_api(order_data, results):
 
     try:
         response = stub.VerifyTransaction(request)
+        print(f"Transaction Response: {response}")
         results["transaction_valid"] = response.isValid
     except grpc.RpcError as e:
         results["transaction_valid"] = None
@@ -103,7 +104,7 @@ def get_suggestions_api(order_data, results):
                 books_pb2.BookRequest()
             )  # No parameters specified in the proto for this request
             response = stub.GetSuggestions(request)
-
+            print(f"Suggestions: {response}")
             # Process the response
             if response.books:
                 results["suggestions"] = [
@@ -114,7 +115,7 @@ def get_suggestions_api(order_data, results):
                 results["suggestions"] = []
 
     except grpc.RpcError as e:
-        results["suggestions"] = None
+        results["suggestions"] = []
         print(f"Error contacting suggestions service: {e.details()}")
 
 
@@ -128,21 +129,21 @@ def process_order(order_data, results):
     print(f"Generated Order ID: {order_data['orderId']}")
 
     def check_fraud():
-        order_data["vectorClock"][0] += 1  # Update fraud_thread timestamp before call
+        # order_data["vectorClock"][0] += 1  # Update fraud_thread timestamp before call
         check_fraud_api(order_data, results)  # Pass order_data with vector clock
 
     def verify_transaction():
         fraud_thread.join()  # Ensure fraud check completes first
-        order_data["vectorClock"][
-            1
-        ] += 1  # Update transaction_thread timestamp before call
+        # order_data["vectorClock"][
+        #     1
+        # ] += 1  # Update transaction_thread timestamp before call
         verify_transaction_api(order_data, results)  # Pass order_data with vector clock
 
     def get_suggestions():
         transaction_thread.join()  # Ensure transaction check completes first
-        order_data["vectorClock"][
-            2
-        ] += 1  # Update suggestions_thread timestamp before call
+        # order_data["vectorClock"][
+        #     2
+        # ] += 1  # Update suggestions_thread timestamp before call
         get_suggestions_api(order_data, results)  # Pass order_data with vector clock
 
     # Create threads for gRPC calls
@@ -160,7 +161,8 @@ def process_order(order_data, results):
     suggestions_thread.start()
     suggestions_thread.join()
 
-    print(f"Order processing completed. Vector Clock: {order_data['vectorClock']}")
+    # print(f"Order completed")
+    # print(f"Order processing completed. Vector Clock: {order_data['vectorClock']}")
 
 
 @app.post("/checkout")
@@ -196,6 +198,7 @@ async def checkout(request: Request):
         response_json = {
             "status": "Order Rejected",
             "orderId": order_data["orderId"],
+            "suggestedBooks": [],
             "error": {"message": "Fraud detected or transaction invalid"},
         }
         return response_json

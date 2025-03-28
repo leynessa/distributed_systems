@@ -38,12 +38,13 @@ def fetch_books_from_gpt():
             model="gpt-4o",
             messages=messages,
         )
+        print(f"Response: {response}")
         response_content = response.choices[0].message.content.strip()
         # print(response_content)
         cleaned_content = re.sub(
             r"```json\n(.*?)\n```", r"\1", response_content, flags=re.DOTALL
         ).strip()
-
+        print(f"Cleaned Content: {cleaned_content}")
         books_json = json.loads(cleaned_content)
         if isinstance(books_json, list) and len(books_json) == 2:
             return books_json
@@ -55,7 +56,9 @@ def fetch_books_from_gpt():
 class BookService(books_pb2_grpc.BookServiceServicer):
     def GetSuggestions(self, request, context):
         response = books_pb2.BookList()
-        for book in fetch_books_from_gpt():
+        books_list = fetch_books_from_gpt()
+        print(f"Books List: {books_list}")
+        for book in books_list:
             response.books.add(title=book["title"], author=book["author"])
         return response
 
