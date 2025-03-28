@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from . import books_pb2 as books__pb2
+import books_pb2 as books__pb2
 
 
 class BookServiceStub(object):
