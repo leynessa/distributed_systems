@@ -17,8 +17,12 @@ fraud_detection_grpc_path = os.path.abspath(
 suggestions_grpc_path = os.path.abspath(
     os.path.join(FILE, "../../../utils/pb/suggestions")
 )
+transaction_grpc_path = os.path.abspath(
+    os.path.join(FILE, "../../../utils/pb/transaction_service")
+)
 sys.path.insert(0, fraud_detection_grpc_path)
 sys.path.insert(1, suggestions_grpc_path)
+sys.path.insert(2, transaction_grpc_path)
 
 import books_pb2
 import books_pb2_grpc
@@ -26,8 +30,8 @@ import books_pb2_grpc
 import fraud_pb2
 import fraud_pb2_grpc
 
-# import transaction_pb2
-# import transaction_pb2_grpc
+import transaction_pb2 as transaction_verification
+import transaction_pb2_grpc
 
 # Create a FastAPI app.
 app = FastAPI()
@@ -41,8 +45,6 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-
-import requests
 import grpc
 
 
@@ -68,21 +70,41 @@ def check_fraud_api(order_data, results):
         print(f"Error contacting fraud detection service: {e}")
 
 
-from . import transaction_pb2
-from . import transaction_pb2_grpc
-
-
-def verify_transaction_api(order_data, results):
+def verify_transaction_api(verification_info, results):
     channel = grpc.insecure_channel("transaction_verification:50051")
     stub = transaction_pb2_grpc.TransactionServiceStub(channel)
 
-    credit_card = transaction_pb2.CreditCard(
-        number=order_data["creditCard"]["number"],
-        expirationDate=order_data["creditCard"]["expirationDate"],
-        cvv=order_data["creditCard"]["cvv"],
+    # credit_card = transaction_pb2.CreditCard(
+    #     number=order_data["creditCard"]["number"],
+    #     expirationDate=order_data["creditCard"]["expirationDate"],
+    #     cvv=order_data["creditCard"]["cvv"],
+    # )
+    # request = transaction_pb2.TransactionRequest(creditCard=credit_card)
+    print(f"Verification Info: {verification_info}")
+    request = transaction_verification.TransactionRequest(
+        user=transaction_verification.TransactionUser(
+            name=verification_info.get("user", {}).get("name", ""),
+            contact=verification_info.get("user", {}).get("contact", ""),
+        ),
+        creditCard=transaction_verification.CreditCard(
+            number=verification_info.get("creditCard", {}).get("number", ""),
+            expirationDate=verification_info.get("creditCard", {}).get(
+                "expirationDate", ""
+            ),
+            cvv=verification_info.get("creditCard", {}).get("cvv", ""),
+        ),
+        items=[
+            transaction_verification.TransactionItem(
+                name=item.get("name", ""), quantity=item.get("quantity", 0)
+            )
+            for item in verification_info.get("items", [])
+        ],
+        billingAddress=transaction_verification.TransactionBillingAddress(
+            street=verification_info.get("billingAddress", {}).get("street", ""),
+            city=verification_info.get("billingAddress", {}).get("city", ""),
+            country=verification_info.get("billingAddress", {}).get("country", ""),
+        ),
     )
-
-    request = transaction_pb2.TransactionRequest(creditCard=credit_card)
 
     try:
         response = stub.VerifyTransaction(request)

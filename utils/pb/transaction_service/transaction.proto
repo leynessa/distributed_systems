@@ -2,18 +2,42 @@ syntax = "proto3";
 
 package transaction;
 
-message CreditCard {
+message TransactionUser{
+    string name = 1;
+    string contact = 2;
+}
+
+
+message CreditCard{
     string number = 1;
-    string expirationDate = 2;
+    string expirationDate =2;
     string cvv = 3;
 }
 
-message TransactionRequest {
-    CreditCard creditCard = 1;
+message TransactionItem{
+    string name = 1;
+    int32 quantity = 2;
 }
+
+message TransactionBillingAddress{
+    string street = 1;
+    string city = 2;
+    string state = 3;
+    string zip = 4;
+    string country = 5;
+}
+
+message TransactionRequest {
+    TransactionUser user = 1;
+    CreditCard creditCard = 2;
+    repeated TransactionItem items = 3;
+    TransactionBillingAddress billingAddress = 4;
+}
+
 
 message TransactionResponse {
     bool isValid = 1;
+    string error = 2;
 }
 
 service TransactionService {

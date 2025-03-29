@@ -10,8 +10,8 @@ COPY ./microservices/fraud_detection/requirements.txt .
 
 # Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
-
+RUN pip install --upgrade protobuf
 EXPOSE 50051
 
 # Set the command to run the application
-CMD python -m microservices.fraud_detection.src.fraud_detection
+CMD python utils/other/hotreload.py "microservices/fraud_detection/src/fraud_detection.py"
