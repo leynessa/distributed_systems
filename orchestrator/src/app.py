@@ -65,6 +65,7 @@ def check_fraud_api(order_data, results):
         request = fraud_pb2.FraudRequest(orderId=order_data["orderId"])
         response = stub.CheckFraud(request)
         results["fraud"] = response.isFraudulent
+        
     except grpc.RpcError as e:
         results["fraud"] = None
         print(f"Error contacting fraud detection service: {e}")
@@ -200,15 +201,17 @@ async def checkout(request: Request):
     order_data = {
         "orderId": request_data.get("orderId", "12345"),
         "userId": request_data.get("userId", ""),
+        "user": request_data.get("user", {}),
         "items": request_data.get("items", []),
         "totalAmount": request_data.get("totalAmount", 0.0),
         "creditCard": request_data.get("creditCard"),
+        "billingAddress": request_data.get("billingAddress", {}),
     }
     results = {}
 
     # Process order (API calls in parallel)
     process_order(order_data, results)
-
+    print("results:", results)
     if not results.get("fraud", True) and results.get("transaction_valid", False):
         response_json = {
             "status": "Order Approved",

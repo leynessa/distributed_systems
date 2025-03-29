@@ -1,8 +1,13 @@
 import grpc
 from concurrent import futures
+import sys
 import random
-from . import fraud_pb2
-from . import fraud_pb2_grpc
+
+utils_path = "/app/utils/pb/fraud_detection"
+sys.path.insert(0, utils_path)
+
+import fraud_pb2
+import fraud_pb2_grpc
 
 class FraudCheckerServicer(fraud_pb2_grpc.FraudCheckerServicer):
     def CheckFraud(self, request, context):

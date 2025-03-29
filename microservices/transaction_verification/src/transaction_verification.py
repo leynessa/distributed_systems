@@ -19,6 +19,12 @@ def validate_cvv(cvv):
     return bool(re.fullmatch(r"\d{3}", cvv))
 
 
+def validate_credit_card_number(number):
+    """Validate that the credit card number is exactly 16 digits using regex."""
+    pattern = r"^\d{16}$"
+    return bool(re.match(pattern, number))
+
+
 def validate_required_fields(request):
     """Check that required fields are present and non-empty."""
     missing = []
@@ -65,24 +71,6 @@ def validate_expiration_date(date_str):
         return False
 
 
-def validate_credit_card_number(number):
-    """Validate that the credit card number is exactly 16 digits."""
-    nDigits = len(number)
-    nSum = 0
-    isSecond = False
-    for i in range(nDigits - 1, -1, -1):
-        d = ord(number[i]) - ord("0")
-        if isSecond == True:
-            d = d * 2
-        nSum += d // 10
-        nSum += d % 10
-        isSecond = not isSecond
-    if nSum % 10 == 0:
-        return True
-    else:
-        return False
-
-
 class TransactionService(transaction_pb2_grpc.TransactionServiceServicer):
     def VerifyTransaction(self, request, context):
         """
@@ -90,33 +78,35 @@ class TransactionService(transaction_pb2_grpc.TransactionServiceServicer):
         Applies basic validation logic on the incoming transaction request.
         """
         print(f"Received transaction verification request : {request}")
-
+        print(0)
         if not request.items:
             response.isValid = False
             # response.errors = "Items list is empty"
             return response
         # 1. Validate required fields
+        print(1)
         missing = validate_required_fields(request)
         if missing:
             response = transaction_verification.TransactionResponse()
             response.isValid = False
+            print(missing)
             # response.errors = "Missing required fields: " + ", ".join(missing)
             return response
-
+        print(2)
         # 2. Validate credit card number format
         if not validate_credit_card_number(request.creditCard.number):
             response = transaction_verification.TransactionResponse()
             response.isValid = False
             # response.errors = "Invalid credit card number."
             return response
-
+        print(3)
         # 3. Validate expiration date format and check if card is expired
         if not validate_expiration_date(request.creditCard.expirationDate):
             response = transaction_verification.TransactionVerificationResponse()
             response.isValid = False
             # response.errors = "Invalid or expired credit card expiration date."
             return response
-
+        print(4)
         # 4. Validate CVV
         if not validate_cvv(request.creditCard.cvv):
             response = transaction_verification.TransactionResponse()
@@ -125,6 +115,7 @@ class TransactionService(transaction_pb2_grpc.TransactionServiceServicer):
             return response
         response = transaction_verification.TransactionResponse()
         response.isValid = True
+        print (response)
         return response
 
 
