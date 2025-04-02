@@ -14,17 +14,23 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0b\x66raud.proto\x12\x05\x66raud\"\x1f\n\x0c\x46raudRequest\x12\x0f\n\x07orderId\x18\x01 \x01(\t\"%\n\rFraudResponse\x12\x14\n\x0cisFraudulent\x18\x01 \x01(\x08\x32G\n\x0c\x46raudChecker\x12\x37\n\nCheckFraud\x12\x13.fraud.FraudRequest\x1a\x14.fraud.FraudResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0b\x66raud.proto\x12\x05\x66raud\"i\n\x0bVectorClock\x12,\n\x05\x63lock\x18\x01 \x03(\x0b\x32\x1d.fraud.VectorClock.ClockEntry\x1a,\n\nClockEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x05:\x02\x38\x01\"H\n\x0c\x46raudRequest\x12\x0f\n\x07orderId\x18\x01 \x01(\t\x12\'\n\x0bvectorClock\x18\x02 \x01(\x0b\x32\x12.fraud.VectorClock\"N\n\rFraudResponse\x12\x14\n\x0cisFraudulent\x18\x01 \x01(\x08\x12\'\n\x0bvectorClock\x18\x02 \x01(\x0b\x32\x12.fraud.VectorClock2G\n\x0c\x46raudChecker\x12\x37\n\nCheckFraud\x12\x13.fraud.FraudRequest\x1a\x14.fraud.FraudResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'fraud_pb2', _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
-  _globals['_FRAUDREQUEST']._serialized_start=22
-  _globals['_FRAUDREQUEST']._serialized_end=53
-  _globals['_FRAUDRESPONSE']._serialized_start=55
-  _globals['_FRAUDRESPONSE']._serialized_end=92
-  _globals['_FRAUDCHECKER']._serialized_start=94
-  _globals['_FRAUDCHECKER']._serialized_end=165
+  _globals['_VECTORCLOCK_CLOCKENTRY']._options = None
+  _globals['_VECTORCLOCK_CLOCKENTRY']._serialized_options = b'8\001'
+  _globals['_VECTORCLOCK']._serialized_start=22
+  _globals['_VECTORCLOCK']._serialized_end=127
+  _globals['_VECTORCLOCK_CLOCKENTRY']._serialized_start=83
+  _globals['_VECTORCLOCK_CLOCKENTRY']._serialized_end=127
+  _globals['_FRAUDREQUEST']._serialized_start=129
+  _globals['_FRAUDREQUEST']._serialized_end=201
+  _globals['_FRAUDRESPONSE']._serialized_start=203
+  _globals['_FRAUDRESPONSE']._serialized_end=281
+  _globals['_FRAUDCHECKER']._serialized_start=283
+  _globals['_FRAUDCHECKER']._serialized_end=354
 # @@protoc_insertion_point(module_scope)

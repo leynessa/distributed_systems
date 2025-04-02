@@ -6,10 +6,16 @@ service FraudChecker {
   rpc CheckFraud (FraudRequest) returns (FraudResponse);
 }
 
+message VectorClock {
+  map<string, int32> clock = 1;
+}
+
 message FraudRequest {
   string orderId = 1;
+  VectorClock vectorClock = 2; // додано поле
 }
 
 message FraudResponse {
   bool isFraudulent = 1;
+  VectorClock vectorClock = 2; // опціонально: повертаємо оновлений годинник
 }

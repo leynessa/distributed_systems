@@ -48,27 +48,47 @@ app.add_middleware(
 import grpc
 
 
-# class VectorClock:
-#     def __init__(self):
-#         self.clock = [0, 0, 0]
+# utils/vector_clock.py
+class VectorClock:
+    def __init__(self, initial=None):
+        self.clock = initial if initial is not None else {}
 
-#     def update(self, clock):
-#         self.clock = [max(a, b) for a, b in zip(self.clock, clock)]
+    def increment(self, service_name):
+        self.clock[service_name] = self.clock.get(service_name, 0) + 1
 
-#     def to_proto(self,service):
+    def merge(self, other_clock):
+        for service, time in other_clock.items():
+            self.clock[service] = max(self.clock.get(service, 0), time)
 
+    def to_proto(self, proto_class):
+        return proto_class(clock=self.clock)
 
-def check_fraud_api(order_data, results):
+    @staticmethod
+    def from_proto(proto_clock):
+        return VectorClock(dict(proto_clock.clock))
+
+def check_fraud_api(order_data, results, vc):
     channel = grpc.insecure_channel("fraud_detection:50051")
     stub = fraud_pb2_grpc.FraudCheckerStub(channel)
     try:
-        request = fraud_pb2.FraudRequest(orderId=order_data["orderId"])
+        vc.increment("orchestrator")  # локальний приріст перед запитом
+
+        request = fraud_pb2.FraudRequest(
+            orderId=order_data["orderId"],
+            vectorClock=vc.to_proto(fraud_pb2.VectorClock)
+        )
+
         response = stub.CheckFraud(request)
         results["fraud"] = response.isFraudulent
-        
+
+        # merge clock з відповіді
+        updated_clock = VectorClock.from_proto(response.vectorClock)
+        vc.merge(updated_clock.clock)
+
     except grpc.RpcError as e:
         results["fraud"] = None
         print(f"Error contacting fraud detection service: {e}")
+
 
 
 def verify_transaction_api(verification_info, results):
@@ -147,34 +167,30 @@ import uuid
 
 # The process_order function to handle the orchestration of the gRPC calls
 def process_order(order_data, results):
-    # Generate unique order ID
     order_data["orderId"] = str(uuid.uuid4())
     print(f"Generated Order ID: {order_data['orderId']}")
 
+    # Створити векторний годинник
+    vc = VectorClock()
+
     def check_fraud():
-        # order_data["vectorClock"][0] += 1  # Update fraud_thread timestamp before call
-        check_fraud_api(order_data, results)  # Pass order_data with vector clock
+        check_fraud_api(order_data, results, vc)
 
     def verify_transaction():
-        fraud_thread.join()  # Ensure fraud check completes first
-        # order_data["vectorClock"][
-        #     1
-        # ] += 1  # Update transaction_thread timestamp before call
-        verify_transaction_api(order_data, results)  # Pass order_data with vector clock
+        fraud_thread.join()
+        vc.increment("orchestrator")
+        verify_transaction_api(order_data, results)  # TODO: передати vc далі
 
     def get_suggestions():
-        transaction_thread.join()  # Ensure transaction check completes first
-        # order_data["vectorClock"][
-        #     2
-        # ] += 1  # Update suggestions_thread timestamp before call
-        get_suggestions_api(order_data, results)  # Pass order_data with vector clock
+        transaction_thread.join()
+        vc.increment("orchestrator")
+        get_suggestions_api(order_data, results)  # TODO: передати vc далі
 
-    # Create threads for gRPC calls
+    # Start threads
     fraud_thread = threading.Thread(target=check_fraud)
     transaction_thread = threading.Thread(target=verify_transaction)
     suggestions_thread = threading.Thread(target=get_suggestions)
 
-    # Start threads
     fraud_thread.start()
     fraud_thread.join()
 
@@ -184,8 +200,7 @@ def process_order(order_data, results):
     suggestions_thread.start()
     suggestions_thread.join()
 
-    # print(f"Order completed")
-    # print(f"Order processing completed. Vector Clock: {order_data['vectorClock']}")
+    print(f"Final vector clock: {vc.clock}")
 
 
 @app.post("/checkout")
