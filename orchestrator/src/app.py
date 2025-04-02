@@ -136,19 +136,24 @@ def verify_transaction_api(verification_info, results):
         print(f"Error contacting transaction verification service: {e}")
 
 
-def get_suggestions_api(order_data, results):
+def get_suggestions_api(order_data, results, vc):
     try:
-        # Establish a connection to the gRPC server
         with grpc.insecure_channel("suggestions:50053") as channel:
             stub = books_pb2_grpc.BookServiceStub(channel)
 
-            # Create the BookRequest message (you can add parameters if needed)
-            request = (
-                books_pb2.BookRequest()
-            )  # No parameters specified in the proto for this request
+            # Оркестратор інкрементує свій логічний час
+            vc.increment("orchestrator")
+
+            request = books_pb2.BookRequest(
+                vectorClock=vc.to_proto(books_pb2.VectorClock)
+            )
+
             response = stub.GetSuggestions(request)
-            print(f"Suggestions: {response}")
-            # Process the response
+
+            # Мерджимо годинник з відповіді
+            response_clock = VectorClock.from_proto(response.vectorClock)
+            vc.merge(response_clock.clock)
+
             if response.books:
                 results["suggestions"] = [
                     {"title": book.title, "author": book.author}
@@ -179,12 +184,12 @@ def process_order(order_data, results):
     def verify_transaction():
         fraud_thread.join()
         vc.increment("orchestrator")
-        verify_transaction_api(order_data, results)  # TODO: передати vc далі
+        verify_transaction_api(order_data, results)
 
     def get_suggestions():
         transaction_thread.join()
         vc.increment("orchestrator")
-        get_suggestions_api(order_data, results)  # TODO: передати vc далі
+        get_suggestions_api(order_data, results, vc)
 
     # Start threads
     fraud_thread = threading.Thread(target=check_fraud)

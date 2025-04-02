@@ -3,14 +3,17 @@ from concurrent import futures
 import random
 import sys
 import os
+import threading
 
-# FILE = __file__ if "__file__" in globals() else os.getenv("PYTHONFILE", "")
-# utils_path = os.path.abspath(os.path.join(FILE, "../../../utils/pb/suggestions"))
 utils_path = "/app/utils/pb/suggestions"
 sys.path.insert(0, utils_path)
 
 import books_pb2
 import books_pb2_grpc
+
+SERVICE_NAME = "suggestions_service"
+order_cache = {}
+cache_lock = threading.Lock()
 
 books_list = [
     {"title": "To Kill a Mockingbird", "author": "Harper Lee"},
@@ -20,7 +23,7 @@ books_list = [
     {"title": "Moby Dick", "author": "Herman Melville"},
     {"title": "War and Peace", "author": "Leo Tolstoy"},
     {"title": "The Catcher in the Rye", "author": "J.D. Salinger"},
-    {"title": "The Hobbit", "author": "J.R.R. Tolkien"}
+    {"title": "The Hobbit", "author": "J.R.R. Tolkien"},
 ]
 
 
@@ -30,9 +33,40 @@ def fetch_books_from_list():
 
 class BookService(books_pb2_grpc.BookServiceServicer):
     def GetSuggestions(self, request, context):
-        response = books_pb2.BookList()
+        order_id = "default_order"
+        incoming_clock = dict(request.vectorClock.clock)
+
+        with cache_lock:
+            if order_id not in order_cache:
+                order_cache[order_id] = {
+                    "vector_clock": {}
+                }
+
+            vector_clock = order_cache[order_id]["vector_clock"]
+
+            # Змерджити з вхідним годинником
+            for service, ts in incoming_clock.items():
+                vector_clock[service] = max(vector_clock.get(service, 0), ts)
+
+            # Перевірка: чи fraud_service завершив
+            if vector_clock.get("fraud_service", 0) < 1:
+                context.abort(
+                    grpc.StatusCode.FAILED_PRECONDITION,
+                    "Cannot provide suggestions before fraud_service completes"
+                )
+
+            # Інкрементуємо локальний годинник
+            vector_clock[SERVICE_NAME] = vector_clock.get(SERVICE_NAME, 0) + 1
+
+        # Вибір книг
         selected_books = fetch_books_from_list()
+        print(f"[OrderID: {order_id}] Vector Clock: {vector_clock}")
         print(f"Books List: {selected_books}")
+
+        # Формуємо відповідь
+        response = books_pb2.BookList(
+            vectorClock=books_pb2.VectorClock(clock=vector_clock)
+        )
         for book in selected_books:
             response.books.add(title=book["title"], author=book["author"])
         return response

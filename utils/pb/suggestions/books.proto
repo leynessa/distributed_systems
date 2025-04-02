@@ -2,11 +2,13 @@ syntax = "proto3";
 
 package books;
 
-service BookService {
-  rpc GetSuggestions (BookRequest) returns (BookList);
+message VectorClock {
+  map<string, int32> clock = 1;
 }
 
-message BookRequest {}
+message BookRequest {
+  VectorClock vectorClock = 1; // Додаємо векторний годинник
+}
 
 message Book {
   string title = 1;
@@ -15,4 +17,9 @@ message Book {
 
 message BookList {
   repeated Book books = 1;
+  VectorClock vectorClock = 2; // Повертаємо оновлений годинник
+}
+
+service BookService {
+  rpc GetSuggestions (BookRequest) returns (BookList);
 }
