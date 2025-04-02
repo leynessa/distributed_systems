@@ -47,11 +47,21 @@ class BookService(books_pb2_grpc.BookServiceServicer):
             vector_clock = order_cache[order_id]["vector_clock"]
             merge_clocks(vector_clock, incoming_clock)
 
-            if vector_clock.get("fraud_service", 0) < 1:
-                context.abort(
-                    grpc.StatusCode.FAILED_PRECONDITION,
-                    "Cannot provide suggestions before fraud_service completes"
-                )
+            # Перевірити, що обидва сервіси завершили роботу
+            # Ключ — назва сервісу, значення — якого часу очікуємо
+            required_clocks = {
+                "fraud_service": 1,
+                "transaction_service": 1
+            }
+
+            for svc, expected in required_clocks.items():
+                current = vector_clock.get(svc, 0)
+                if current < expected:
+                    print(f"[OrderID: {order_id}] {svc} clock={current} < expected={expected}")
+                    context.abort(
+                        grpc.StatusCode.FAILED_PRECONDITION,
+                        f"Cannot provide suggestions before {svc} reaches clock {expected}"
+                    )
 
             vector_clock[SERVICE_NAME] = vector_clock.get(SERVICE_NAME, 0) + 1
 

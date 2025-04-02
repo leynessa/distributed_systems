@@ -19,12 +19,23 @@ class TransactionServiceStub(object):
                 request_serializer=transaction__pb2.TransactionRequest.SerializeToString,
                 response_deserializer=transaction__pb2.TransactionResponse.FromString,
                 )
+        self.UpdateClock = channel.unary_unary(
+                '/transaction.TransactionService/UpdateClock',
+                request_serializer=transaction__pb2.UpdateClockRequest.SerializeToString,
+                response_deserializer=transaction__pb2.UpdateClockResponse.FromString,
+                )
 
 
 class TransactionServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def VerifyTransaction(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpdateClock(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -37,6 +48,11 @@ def add_TransactionServiceServicer_to_server(servicer, server):
                     servicer.VerifyTransaction,
                     request_deserializer=transaction__pb2.TransactionRequest.FromString,
                     response_serializer=transaction__pb2.TransactionResponse.SerializeToString,
+            ),
+            'UpdateClock': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateClock,
+                    request_deserializer=transaction__pb2.UpdateClockRequest.FromString,
+                    response_serializer=transaction__pb2.UpdateClockResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -62,5 +78,22 @@ class TransactionService(object):
         return grpc.experimental.unary_unary(request, target, '/transaction.TransactionService/VerifyTransaction',
             transaction__pb2.TransactionRequest.SerializeToString,
             transaction__pb2.TransactionResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def UpdateClock(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/transaction.TransactionService/UpdateClock',
+            transaction__pb2.UpdateClockRequest.SerializeToString,
+            transaction__pb2.UpdateClockResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

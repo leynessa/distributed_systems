@@ -92,49 +92,49 @@ def check_fraud_api(order_data, results, vc):
 
 
 
-def verify_transaction_api(verification_info, results):
+def verify_transaction_api(order_data, results, vc):
     channel = grpc.insecure_channel("transaction_verification:50051")
     stub = transaction_pb2_grpc.TransactionServiceStub(channel)
 
-    # credit_card = transaction_pb2.CreditCard(
-    #     number=order_data["creditCard"]["number"],
-    #     expirationDate=order_data["creditCard"]["expirationDate"],
-    #     cvv=order_data["creditCard"]["cvv"],
-    # )
-    # request = transaction_pb2.TransactionRequest(creditCard=credit_card)
-    print(f"Verification Info: {verification_info}")
+    print(f"Verification Info: {order_data}")
     request = transaction_verification.TransactionRequest(
+        orderId=order_data["orderId"],
         user=transaction_verification.TransactionUser(
-            name=verification_info.get("user", {}).get("name", ""),
-            contact=verification_info.get("user", {}).get("contact", ""),
+            name=order_data.get("user", {}).get("name", ""),
+            contact=order_data.get("user", {}).get("contact", ""),
         ),
         creditCard=transaction_verification.CreditCard(
-            number=verification_info.get("creditCard", {}).get("number", ""),
-            expirationDate=verification_info.get("creditCard", {}).get(
-                "expirationDate", ""
-            ),
-            cvv=verification_info.get("creditCard", {}).get("cvv", ""),
+            number=order_data.get("creditCard", {}).get("number", ""),
+            expirationDate=order_data.get("creditCard", {}).get("expirationDate", ""),
+            cvv=order_data.get("creditCard", {}).get("cvv", ""),
         ),
         items=[
             transaction_verification.TransactionItem(
                 name=item.get("name", ""), quantity=item.get("quantity", 0)
             )
-            for item in verification_info.get("items", [])
+            for item in order_data.get("items", [])
         ],
         billingAddress=transaction_verification.TransactionBillingAddress(
-            street=verification_info.get("billingAddress", {}).get("street", ""),
-            city=verification_info.get("billingAddress", {}).get("city", ""),
-            country=verification_info.get("billingAddress", {}).get("country", ""),
+            street=order_data.get("billingAddress", {}).get("street", ""),
+            city=order_data.get("billingAddress", {}).get("city", ""),
+            country=order_data.get("billingAddress", {}).get("country", ""),
         ),
+        vectorClock=vc.to_proto(transaction_verification.VectorClock)
     )
 
     try:
         response = stub.VerifyTransaction(request)
         print(f"Transaction Response: {response.isValid}")
         results["transaction_valid"] = response.isValid
+
+        if hasattr(response, "vectorClock"):
+            updated_clock = VectorClock.from_proto(response.vectorClock)
+            vc.merge(updated_clock.clock)
+
     except grpc.RpcError as e:
         results["transaction_valid"] = None
         print(f"Error contacting transaction verification service: {e}")
+
 
 
 def get_suggestions_api(order_data, results, vc):
@@ -187,7 +187,7 @@ def process_order(order_data, results):
     def verify_transaction():
         fraud_thread.join()
         vc.increment("orchestrator")
-        verify_transaction_api(order_data, results)
+        verify_transaction_api(order_data, results, vc)
 
     def get_suggestions():
         transaction_thread.join()
