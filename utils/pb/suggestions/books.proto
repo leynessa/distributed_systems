@@ -7,7 +7,8 @@ message VectorClock {
 }
 
 message BookRequest {
-  VectorClock vectorClock = 1; // Додаємо векторний годинник
+  string orderId = 1;
+  VectorClock vectorClock = 2;
 }
 
 message Book {
@@ -17,9 +18,19 @@ message Book {
 
 message BookList {
   repeated Book books = 1;
-  VectorClock vectorClock = 2; // Повертаємо оновлений годинник
+  VectorClock vectorClock = 2;
+}
+
+message UpdateClockRequest {
+  string orderId = 1;
+  VectorClock vectorClock = 2;
+}
+
+message UpdateClockResponse {
+  VectorClock vectorClock = 1;
 }
 
 service BookService {
   rpc GetSuggestions (BookRequest) returns (BookList);
+  rpc UpdateClock (UpdateClockRequest) returns (UpdateClockResponse);
 }

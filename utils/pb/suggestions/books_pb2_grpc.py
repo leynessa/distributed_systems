@@ -19,12 +19,23 @@ class BookServiceStub(object):
                 request_serializer=books__pb2.BookRequest.SerializeToString,
                 response_deserializer=books__pb2.BookList.FromString,
                 )
+        self.UpdateClock = channel.unary_unary(
+                '/books.BookService/UpdateClock',
+                request_serializer=books__pb2.UpdateClockRequest.SerializeToString,
+                response_deserializer=books__pb2.UpdateClockResponse.FromString,
+                )
 
 
 class BookServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def GetSuggestions(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpdateClock(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -37,6 +48,11 @@ def add_BookServiceServicer_to_server(servicer, server):
                     servicer.GetSuggestions,
                     request_deserializer=books__pb2.BookRequest.FromString,
                     response_serializer=books__pb2.BookList.SerializeToString,
+            ),
+            'UpdateClock': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateClock,
+                    request_deserializer=books__pb2.UpdateClockRequest.FromString,
+                    response_serializer=books__pb2.UpdateClockResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -62,5 +78,22 @@ class BookService(object):
         return grpc.experimental.unary_unary(request, target, '/books.BookService/GetSuggestions',
             books__pb2.BookRequest.SerializeToString,
             books__pb2.BookList.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def UpdateClock(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/books.BookService/UpdateClock',
+            books__pb2.UpdateClockRequest.SerializeToString,
+            books__pb2.UpdateClockResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

@@ -80,6 +80,7 @@ def check_fraud_api(order_data, results, vc):
 
         response = stub.CheckFraud(request)
         results["fraud"] = response.isFraudulent
+        print("true fraud result: ", response.isFraudulent)
 
         # merge clock з відповіді
         updated_clock = VectorClock.from_proto(response.vectorClock)
@@ -129,7 +130,7 @@ def verify_transaction_api(verification_info, results):
 
     try:
         response = stub.VerifyTransaction(request)
-        print(f"Transaction Response: {response}")
+        print(f"Transaction Response: {response.isValid}")
         results["transaction_valid"] = response.isValid
     except grpc.RpcError as e:
         results["transaction_valid"] = None
@@ -145,8 +146,10 @@ def get_suggestions_api(order_data, results, vc):
             vc.increment("orchestrator")
 
             request = books_pb2.BookRequest(
+                orderId=order_data["orderId"],  # ⬅️ Додаємо це
                 vectorClock=vc.to_proto(books_pb2.VectorClock)
             )
+
 
             response = stub.GetSuggestions(request)
 
@@ -232,7 +235,7 @@ async def checkout(request: Request):
     # Process order (API calls in parallel)
     process_order(order_data, results)
     print("results:", results)
-    if not results.get("fraud", True) and results.get("transaction_valid", False):
+    if results["fraud"] and results["transaction_valid"]:
         response_json = {
             "status": "Order Approved",
             "orderId": order_data["orderId"],

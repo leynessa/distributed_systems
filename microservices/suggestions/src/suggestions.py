@@ -26,14 +26,16 @@ books_list = [
     {"title": "The Hobbit", "author": "J.R.R. Tolkien"},
 ]
 
-
 def fetch_books_from_list():
     return random.sample(books_list, 2)
 
+def merge_clocks(target, incoming):
+    for service, time in incoming.items():
+        target[service] = max(target.get(service, 0), time)
 
 class BookService(books_pb2_grpc.BookServiceServicer):
     def GetSuggestions(self, request, context):
-        order_id = "default_order"
+        order_id = request.orderId
         incoming_clock = dict(request.vectorClock.clock)
 
         with cache_lock:
@@ -43,27 +45,20 @@ class BookService(books_pb2_grpc.BookServiceServicer):
                 }
 
             vector_clock = order_cache[order_id]["vector_clock"]
+            merge_clocks(vector_clock, incoming_clock)
 
-            # Змерджити з вхідним годинником
-            for service, ts in incoming_clock.items():
-                vector_clock[service] = max(vector_clock.get(service, 0), ts)
-
-            # Перевірка: чи fraud_service завершив
             if vector_clock.get("fraud_service", 0) < 1:
                 context.abort(
                     grpc.StatusCode.FAILED_PRECONDITION,
                     "Cannot provide suggestions before fraud_service completes"
                 )
 
-            # Інкрементуємо локальний годинник
             vector_clock[SERVICE_NAME] = vector_clock.get(SERVICE_NAME, 0) + 1
 
-        # Вибір книг
         selected_books = fetch_books_from_list()
         print(f"[OrderID: {order_id}] Vector Clock: {vector_clock}")
         print(f"Books List: {selected_books}")
 
-        # Формуємо відповідь
         response = books_pb2.BookList(
             vectorClock=books_pb2.VectorClock(clock=vector_clock)
         )
@@ -71,6 +66,24 @@ class BookService(books_pb2_grpc.BookServiceServicer):
             response.books.add(title=book["title"], author=book["author"])
         return response
 
+    def UpdateClock(self, request, context):
+        order_id = request.orderId
+        incoming_clock = dict(request.vectorClock.clock)
+
+        with cache_lock:
+            if order_id not in order_cache:
+                order_cache[order_id] = {
+                    "vector_clock": {}
+                }
+
+            vector_clock = order_cache[order_id]["vector_clock"]
+            merge_clocks(vector_clock, incoming_clock)
+
+        print(f"[OrderID: {order_id}] Received clock update: {incoming_clock}")
+
+        return books_pb2.UpdateClockResponse(
+            vectorClock=books_pb2.VectorClock(clock=vector_clock)
+        )
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
@@ -79,7 +92,6 @@ def serve():
     server.start()
     print(f"Book Suggestion Server started. Listening on port 50053")
     server.wait_for_termination()
-
 
 if __name__ == "__main__":
     serve()

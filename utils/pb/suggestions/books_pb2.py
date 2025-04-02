@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0b\x62ooks.proto\x12\x05\x62ooks\"i\n\x0bVectorClock\x12,\n\x05\x63lock\x18\x01 \x03(\x0b\x32\x1d.books.VectorClock.ClockEntry\x1a,\n\nClockEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x05:\x02\x38\x01\"6\n\x0b\x42ookRequest\x12\'\n\x0bvectorClock\x18\x01 \x01(\x0b\x32\x12.books.VectorClock\"%\n\x04\x42ook\x12\r\n\x05title\x18\x01 \x01(\t\x12\x0e\n\x06\x61uthor\x18\x02 \x01(\t\"O\n\x08\x42ookList\x12\x1a\n\x05\x62ooks\x18\x01 \x03(\x0b\x32\x0b.books.Book\x12\'\n\x0bvectorClock\x18\x02 \x01(\x0b\x32\x12.books.VectorClock2D\n\x0b\x42ookService\x12\x35\n\x0eGetSuggestions\x12\x12.books.BookRequest\x1a\x0f.books.BookListb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0b\x62ooks.proto\x12\x05\x62ooks\"i\n\x0bVectorClock\x12,\n\x05\x63lock\x18\x01 \x03(\x0b\x32\x1d.books.VectorClock.ClockEntry\x1a,\n\nClockEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x05:\x02\x38\x01\"G\n\x0b\x42ookRequest\x12\x0f\n\x07orderId\x18\x01 \x01(\t\x12\'\n\x0bvectorClock\x18\x02 \x01(\x0b\x32\x12.books.VectorClock\"%\n\x04\x42ook\x12\r\n\x05title\x18\x01 \x01(\t\x12\x0e\n\x06\x61uthor\x18\x02 \x01(\t\"O\n\x08\x42ookList\x12\x1a\n\x05\x62ooks\x18\x01 \x03(\x0b\x32\x0b.books.Book\x12\'\n\x0bvectorClock\x18\x02 \x01(\x0b\x32\x12.books.VectorClock\"N\n\x12UpdateClockRequest\x12\x0f\n\x07orderId\x18\x01 \x01(\t\x12\'\n\x0bvectorClock\x18\x02 \x01(\x0b\x32\x12.books.VectorClock\">\n\x13UpdateClockResponse\x12\'\n\x0bvectorClock\x18\x01 \x01(\x0b\x32\x12.books.VectorClock2\x8a\x01\n\x0b\x42ookService\x12\x35\n\x0eGetSuggestions\x12\x12.books.BookRequest\x1a\x0f.books.BookList\x12\x44\n\x0bUpdateClock\x12\x19.books.UpdateClockRequest\x1a\x1a.books.UpdateClockResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -28,11 +28,15 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['_VECTORCLOCK_CLOCKENTRY']._serialized_start=83
   _globals['_VECTORCLOCK_CLOCKENTRY']._serialized_end=127
   _globals['_BOOKREQUEST']._serialized_start=129
-  _globals['_BOOKREQUEST']._serialized_end=183
-  _globals['_BOOK']._serialized_start=185
-  _globals['_BOOK']._serialized_end=222
-  _globals['_BOOKLIST']._serialized_start=224
-  _globals['_BOOKLIST']._serialized_end=303
-  _globals['_BOOKSERVICE']._serialized_start=305
-  _globals['_BOOKSERVICE']._serialized_end=373
+  _globals['_BOOKREQUEST']._serialized_end=200
+  _globals['_BOOK']._serialized_start=202
+  _globals['_BOOK']._serialized_end=239
+  _globals['_BOOKLIST']._serialized_start=241
+  _globals['_BOOKLIST']._serialized_end=320
+  _globals['_UPDATECLOCKREQUEST']._serialized_start=322
+  _globals['_UPDATECLOCKREQUEST']._serialized_end=400
+  _globals['_UPDATECLOCKRESPONSE']._serialized_start=402
+  _globals['_UPDATECLOCKRESPONSE']._serialized_end=464
+  _globals['_BOOKSERVICE']._serialized_start=467
+  _globals['_BOOKSERVICE']._serialized_end=605
 # @@protoc_insertion_point(module_scope)
