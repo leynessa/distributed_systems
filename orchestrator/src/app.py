@@ -93,7 +93,7 @@ def check_fraud_api(order_data, results, vc):
 
 
 def verify_transaction_api(order_data, results, vc):
-    channel = grpc.insecure_channel("transaction_verification:50051")
+    channel = grpc.insecure_channel("transaction_verification:50052")
     stub = transaction_pb2_grpc.TransactionServiceStub(channel)
 
     print(f"Verification Info: {order_data}")

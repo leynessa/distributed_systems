@@ -106,6 +106,21 @@ class TransactionService(transaction_pb2_grpc.TransactionServiceServicer):
 
             vector_clock = order_cache[order_id]["vector_clock"]
             merge_clocks(vector_clock, incoming_clock)
+
+            # Перевірка: чи fraud_service завершив роботу
+            required_clocks = {
+                "fraud_service": 1
+            }
+
+            for svc, expected in required_clocks.items():
+                current = vector_clock.get(svc, 0)
+                if current < expected:
+                    print(f"[OrderID: {order_id}] {svc} clock={current} < expected={expected}")
+                    context.abort(
+                        grpc.StatusCode.FAILED_PRECONDITION,
+                        f"Cannot validate transaction before {svc} reaches clock {expected}"
+                    )
+
             vector_clock[SERVICE_NAME] = vector_clock.get(SERVICE_NAME, 0) + 1
 
         print(f"[OrderID: {order_id}] Vector Clock: {vector_clock}")
@@ -134,6 +149,7 @@ class TransactionService(transaction_pb2_grpc.TransactionServiceServicer):
             vectorClock=transaction_verification.VectorClock(clock=vector_clock)
         )
 
+
     def UpdateClock(self, request, context):
         order_id = request.orderId
         incoming_clock = dict(request.vectorClock.clock)
@@ -157,8 +173,8 @@ def serve():
     transaction_pb2_grpc.add_TransactionServiceServicer_to_server(
         TransactionService(), server
     )
-    server.add_insecure_port("[::]:50051")
-    print("Transaction Service started on port 50051")
+    server.add_insecure_port("[::]:50052")
+    print("Transaction Service started on port 50052")
     server.start()
     server.wait_for_termination()
 
