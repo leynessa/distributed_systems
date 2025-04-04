@@ -31,7 +31,7 @@ SERVICE_NAME = "fraud_service"
 
 
 def notify_services(order_id, vector_clock):
-    """Надсилає оновлений векторний годинник до suggestions_service і transaction_service."""
+    """ suggestions_service і transaction_service."""
     services = [
         ("suggestions:50053", books_pb2_grpc.BookServiceStub, books_pb2.UpdateClockRequest, books_pb2.VectorClock),
         ("transaction_verification:50052", transaction_pb2_grpc.TransactionServiceStub, transaction_pb2.UpdateClockRequest, transaction_pb2.VectorClock),
@@ -53,7 +53,7 @@ def notify_services(order_id, vector_clock):
                 print(f"[OrderID: {order_id}] Notified {address.split(':')[0]}")
                 print(f"[OrderID: {order_id}] Received updated clock: {updated_clock}")
 
-                # Змерджити назад у локальний кеш
+                # 
                 for service, ts in updated_clock.items():
                     vector_clock[service] = max(vector_clock.get(service, 0), ts)
 
@@ -76,17 +76,17 @@ class FraudCheckerServicer(fraud_pb2_grpc.FraudCheckerServicer):
 
             vector_clock = order_cache[order_id]["vector_clock"]
 
-            # Мерджимо отриманий годинник
+            # 
             for service, ts in incoming_clock.items():
                 vector_clock[service] = max(vector_clock.get(service, 0), ts)
 
-            # Інкрементуємо власний час
+            # 
             vector_clock[SERVICE_NAME] = vector_clock.get(SERVICE_NAME, 0) + 1
 
-        is_fraudulent = random.choice([True, False])
+        is_fraudulent = random.random() < 0.2
         print(f"[OrderID: {order_id}] Vector Clock: {vector_clock}")
         time.sleep(3)
-        # ⏭️ Після обробки — повідомляємо suggestions_service
+        #  suggestions_service
         notify_services(order_id, vector_clock)
 
         return fraud_pb2.FraudResponse(

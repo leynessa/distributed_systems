@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import threading
 import requests
+import uuid
 
 # This set of lines are needed to import the gRPC stubs.
 # The path of the stubs is relative to the current file, or absolute inside the container.
@@ -20,9 +21,14 @@ suggestions_grpc_path = os.path.abspath(
 transaction_grpc_path = os.path.abspath(
     os.path.join(FILE, "../../../utils/pb/transaction_service")
 )
+order_queue_grpc_path = os.path.abspath(
+    os.path.join(FILE, "../../../utils/pb/order_queue")
+)
+
 sys.path.insert(0, fraud_detection_grpc_path)
 sys.path.insert(1, suggestions_grpc_path)
 sys.path.insert(2, transaction_grpc_path)
+sys.path.insert(3, order_queue_grpc_path)
 
 import books_pb2
 import books_pb2_grpc
@@ -32,6 +38,9 @@ import fraud_pb2_grpc
 
 import transaction_pb2 as transaction_verification
 import transaction_pb2_grpc
+
+import order_queue_pb2
+import order_queue_pb2_grpc
 
 # Create a FastAPI app.
 app = FastAPI()
@@ -71,7 +80,7 @@ def check_fraud_api(order_data, results, vc):
     channel = grpc.insecure_channel("fraud_detection:50051")
     stub = fraud_pb2_grpc.FraudCheckerStub(channel)
     try:
-        vc.increment("orchestrator")  # локальний приріст перед запитом
+        vc.increment("orchestrator")   
 
         request = fraud_pb2.FraudRequest(
             orderId=order_data["orderId"],
@@ -79,7 +88,7 @@ def check_fraud_api(order_data, results, vc):
         )
 
         response = stub.CheckFraud(request)
-        results["fraud"] = response.isFraudulent
+        results["fraud_detected"] = response.isFraudulent
         print("true fraud result: ", response.isFraudulent)
 
         # merge clock з відповіді
@@ -87,7 +96,7 @@ def check_fraud_api(order_data, results, vc):
         vc.merge(updated_clock.clock)
 
     except grpc.RpcError as e:
-        results["fraud"] = None
+        results["fraud_detected"] = None
         print(f"Error contacting fraud detection service: {e}")
 
 
@@ -142,18 +151,18 @@ def get_suggestions_api(order_data, results, vc):
         with grpc.insecure_channel("suggestions:50053") as channel:
             stub = books_pb2_grpc.BookServiceStub(channel)
 
-            # Оркестратор інкрементує свій логічний час
+            
             vc.increment("orchestrator")
 
             request = books_pb2.BookRequest(
-                orderId=order_data["orderId"],  # ⬅️ Додаємо це
+                orderId=order_data["orderId"],  
                 vectorClock=vc.to_proto(books_pb2.VectorClock)
             )
 
 
             response = stub.GetSuggestions(request)
 
-            # Мерджимо годинник з відповіді
+            
             response_clock = VectorClock.from_proto(response.vectorClock)
             vc.merge(response_clock.clock)
 
@@ -169,8 +178,56 @@ def get_suggestions_api(order_data, results, vc):
         results["suggestions"] = []
         print(f"Error contacting suggestions service: {e.details()}")
 
+def enqueue_order_api(order_data, results, vc):
+    try:
+        with grpc.insecure_channel("order_queue:50054") as channel:
+            stub = order_queue_pb2_grpc.OrderQueueServiceStub(channel)
+            
+            # Build the order object from order_data
+            order = order_queue_pb2.Order(
+                orderId=order_data["orderId"],
+                userId=order_data.get("userId", ""),
+                user=order_queue_pb2.UserInfo(
+                    name=order_data.get("user", {}).get("name", ""),
+                    contact=order_data.get("user", {}).get("contact", "")
+                ),
+                items=[
+                    order_queue_pb2.OrderItem(
+                        name=item.get("name", ""),
+                        quantity=item.get("quantity", 0)
+                    ) for item in order_data.get("items", [])
+                ],
+                billingAddress=order_queue_pb2.BillingAddress(
+                    street=order_data.get("billingAddress", {}).get("street", ""),
+                    city=order_data.get("billingAddress", {}).get("city", ""),
+                    state=order_data.get("billingAddress", {}).get("state", ""),
+                    zip=order_data.get("billingAddress", {}).get("zip", ""),
+                    country=order_data.get("billingAddress", {}).get("country", "")
+                ),
+                shippingMethod=order_data.get("shippingMethod", "Standard"),
+                giftWrapping=order_data.get("giftWrapping", False)
+            )
+            
+            request = order_queue_pb2.EnqueueRequest(
+                order=order,
+                vectorClock=vc.to_proto(order_queue_pb2.VectorClock)
+            )
+            
+            response = stub.Enqueue(request)
+            results["enqueued"] = response.success
+            results["queue_position"] = response.queuePosition
+            
+            # Update vector clock
+            if hasattr(response, "vectorClock"):
+                updated_clock = VectorClock.from_proto(response.vectorClock)
+                vc.merge(updated_clock.clock)
+            
+            print(f"Order enqueued: {response.success}, Position: {response.queuePosition}")
+    
+    except grpc.RpcError as e:
+        results["enqueued"] = False
+        print(f"Error contacting order queue service: {e.details()}")
 
-import uuid
 
 
 # The process_order function to handle the orchestration of the gRPC calls
@@ -178,7 +235,7 @@ def process_order(order_data, results):
     order_data["orderId"] = str(uuid.uuid4())
     print(f"Generated Order ID: {order_data['orderId']}")
 
-    # Створити векторний годинник
+    # Create vector clock
     vc = VectorClock()
 
     def check_fraud():
@@ -194,10 +251,23 @@ def process_order(order_data, results):
         vc.increment("orchestrator")
         get_suggestions_api(order_data, results, vc)
 
+    def enqueue_order():
+        suggestions_thread.join()
+        vc.increment("orchestrator")
+        
+        # Only enqueue if order is valid (no fraud detected and transaction is valid)
+        if not results.get("fraud_detected", False) and results.get("transaction_valid", False):
+            enqueue_order_api(order_data, results, vc)
+        else:
+            results["enqueued"] = False
+            print("Order not enqueued: fraud detected or transaction invalid")
+
+
     # Start threads
     fraud_thread = threading.Thread(target=check_fraud)
     transaction_thread = threading.Thread(target=verify_transaction)
     suggestions_thread = threading.Thread(target=get_suggestions)
+    enqueue_thread = threading.Thread(target=enqueue_order)
 
     fraud_thread.start()
     fraud_thread.join()
@@ -207,6 +277,12 @@ def process_order(order_data, results):
 
     suggestions_thread.start()
     suggestions_thread.join()
+    
+    enqueue_thread.start()
+    enqueue_thread.join()
+
+   
+
 
     print(f"Final vector clock: {vc.clock}")
 
@@ -229,18 +305,29 @@ async def checkout(request: Request):
         "totalAmount": request_data.get("totalAmount", 0.0),
         "creditCard": request_data.get("creditCard"),
         "billingAddress": request_data.get("billingAddress", {}),
+        "shippingMethod": request_data.get("shippingMethod", "Standard"),
+        "giftWrapping": request_data.get("giftWrapping", False),
+        "userComment": request_data.get("userComment", "")
     }
     results = {}
 
     # Process order (API calls in parallel)
     process_order(order_data, results)
     print("results:", results)
-    if results["fraud"] and results["transaction_valid"]:
+
+    if not results.get("fraud_detected", False) and results.get("transaction_valid", True):
         response_json = {
             "status": "Order Approved",
             "orderId": order_data["orderId"],
             "suggestedBooks": results.get("suggestions", []),
         }
+        # Add queue information if enqueued
+        if results.get("enqueued", False):
+            response_json["queueStatus"] = {
+                "enqueued": True,
+                "position": results.get("queue_position", 0)
+            }
+
         return response_json
     else:
         response_json = {

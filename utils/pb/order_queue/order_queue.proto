@@ -1,6 +1,7 @@
+// order_queue.proto
 syntax = "proto3";
 
-package order_queue;
+package orderqueue;
 
 service OrderQueueService {
   // Enqueue adds an order to the queue
@@ -13,9 +14,9 @@ service OrderQueueService {
   rpc GetQueueStatus(QueueStatusRequest) returns (QueueStatusResponse) {}
 }
 
-// For vector clock implementation - changed to int32 to match other services
+// For vector clock implementation
 message VectorClock {
-  map<string, int32> clock = 1;
+  map<string, uint64> clock = 1;
 }
 
 // Order represents a processed order ready for execution

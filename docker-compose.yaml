@@ -73,6 +73,20 @@ services:
     networks:
       - app-network
 
+  order_queue:
+    build:
+      context: ./
+      dockerfile: ./microservices/order_queue/Dockerfile
+    ports:
+      - 50054:50054
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+      - PYTHONFILE=/app/microservices/order_queue/src/order_queue.py
+    volumes:
+      - ./utils:/app/utils
+      - ./microservices/order_queue/src:/app/microservices/order_queue/src
+    networks:
+      - app-network
 networks:
   app-network:
     driver: bridge
