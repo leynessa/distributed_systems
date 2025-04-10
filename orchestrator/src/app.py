@@ -256,7 +256,7 @@ def process_order(order_data, results):
         vc.increment("orchestrator")
         
         # Only enqueue if order is valid (no fraud detected and transaction is valid)
-        if not results.get("fraud_detected", False) and results.get("transaction_valid", False):
+        if results["fraud_detected"] == False and results["transaction_valid"] == True:
             enqueue_order_api(order_data, results, vc)
         else:
             results["enqueued"] = False
@@ -315,7 +315,7 @@ async def checkout(request: Request):
     process_order(order_data, results)
     print("results:", results)
 
-    if not results.get("fraud_detected", False) and results.get("transaction_valid", True):
+    if results["fraud_detected"] == False and results["transaction_valid"] == True:
         response_json = {
             "status": "Order Approved",
             "orderId": order_data["orderId"],
