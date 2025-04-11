@@ -25,7 +25,7 @@ from google.protobuf.empty_pb2 import Empty
 EXECUTOR_PORT_BASE = 50055  # Base port the executors listen on
 REPLICA_COUNT = int(os.getenv("ORDER_EXECUTOR_REPLICAS", "3"))
 NODE_ID = int(os.getenv("NODE_ID", "1"))  # This node's ID (1-based)
-ELECTION_TIMEOUT_SECONDS = 5  # Time to wait for responses during election
+ELECTION_TIMEOUT_SECONDS = 2  # Time to wait for responses during election
 RUN_LOOP_SLEEP_SECONDS = 5  # How often to check for orders or leader status
 
 # --- Thread Pool ---
@@ -47,7 +47,7 @@ for i in range(1, REPLICA_COUNT + 1):
 
 
 def get_node_connection(node_id):
-    """Get connection string for a node by ID"""
+    # Get connection string for a node by ID
     if node_id in EXECUTOR_NODES:
         node = EXECUTOR_NODES[node_id]
         return f"{node['host']}:{node['port']}"
@@ -74,7 +74,7 @@ class OrderExecutorService(order_executor_pb2_grpc.OrderExecutorServiceServicer)
         threading.Timer(5.0, self.start_election).start()
 
     def check_leader_health(self):
-        """Check if the current leader is still alive"""
+        # Check if the current leader is still alive
         if self.current_leader is None or self.current_leader == self.node_id:
             return True
 
@@ -95,7 +95,7 @@ class OrderExecutorService(order_executor_pb2_grpc.OrderExecutorServiceServicer)
             return False
 
     def election_monitor(self):
-        """Periodically check leader status and start elections if needed"""
+        # Periodically check leader status and start elections if needed
         while True:
             # Check if current leader is still alive
             if not self.check_leader_health():
@@ -116,7 +116,7 @@ class OrderExecutorService(order_executor_pb2_grpc.OrderExecutorServiceServicer)
             time.sleep(RUN_LOOP_SLEEP_SECONDS)
 
     def start_election(self):
-        """Start a leader election using the Bully Algorithm"""
+        # Start a leader election using the Bully Algorithm
         with self.election_lock:
             if self.election_active:
                 return
@@ -167,12 +167,12 @@ class OrderExecutorService(order_executor_pb2_grpc.OrderExecutorServiceServicer)
             threading.Thread(target=check_for_leader, daemon=True).start()
 
     def become_leader(self):
-        """Declare this node as the leader and notify all other nodes"""
+        # Declare this node as the leader and notify all other nodes
         logger.info(f"Node {self.node_id} declaring itself as leader")
         self.is_leader = True
         self.current_leader = self.node_id
         logger.info(
-            f"=== NEW LEADER ELECTED: Node {self.node_id} is now the leader of the cluster ==="
+            f" NEW LEADER ELECTED: Node {self.node_id} is now the leader of the cluster"
         )
 
         # Notify all other nodes about the new leader
@@ -203,7 +203,7 @@ class OrderExecutorService(order_executor_pb2_grpc.OrderExecutorServiceServicer)
             self.election_active = False
 
     def perform_leader_duties(self):
-        """Main loop that runs when this node is the leader"""
+        # Main loop that runs when this node is the leader
         if not self.is_leader:
             return
 
@@ -227,7 +227,7 @@ class OrderExecutorService(order_executor_pb2_grpc.OrderExecutorServiceServicer)
 
     # gRPC service methods
     def AnnounceID(self, request, context):
-        """Handle election announcement from another node"""
+        # Handle election announcement from another node
         candidate_id = request.executor_id
         logger.info(f"Received election announcement from node {candidate_id}")
 
@@ -250,7 +250,7 @@ class OrderExecutorService(order_executor_pb2_grpc.OrderExecutorServiceServicer)
             self.current_leader = leader_id
             self.is_leader = leader_id == self.node_id
             logger.info(
-                f"=== LEADER ACKNOWLEDGED: Node {leader_id} is confirmed as the cluster leader ==="
+                f"LEADER ACKNOWLEDGED: Node {leader_id} is confirmed as the cluster leader"
             )
             return order_executor_pb2.CoordinatorResponse(acknowledged=True)
 

@@ -76,15 +76,16 @@ class VectorClock:
     def from_proto(proto_clock):
         return VectorClock(dict(proto_clock.clock))
 
+
 def check_fraud_api(order_data, results, vc):
     channel = grpc.insecure_channel("fraud_detection:50051")
     stub = fraud_pb2_grpc.FraudCheckerStub(channel)
     try:
-        vc.increment("orchestrator")   
+        vc.increment("orchestrator")
 
         request = fraud_pb2.FraudRequest(
             orderId=order_data["orderId"],
-            vectorClock=vc.to_proto(fraud_pb2.VectorClock)
+            vectorClock=vc.to_proto(fraud_pb2.VectorClock),
         )
 
         response = stub.CheckFraud(request)
@@ -98,7 +99,6 @@ def check_fraud_api(order_data, results, vc):
     except grpc.RpcError as e:
         results["fraud_detected"] = None
         print(f"Error contacting fraud detection service: {e}")
-
 
 
 def verify_transaction_api(order_data, results, vc):
@@ -128,7 +128,7 @@ def verify_transaction_api(order_data, results, vc):
             city=order_data.get("billingAddress", {}).get("city", ""),
             country=order_data.get("billingAddress", {}).get("country", ""),
         ),
-        vectorClock=vc.to_proto(transaction_verification.VectorClock)
+        vectorClock=vc.to_proto(transaction_verification.VectorClock),
     )
 
     try:
@@ -145,24 +145,20 @@ def verify_transaction_api(order_data, results, vc):
         print(f"Error contacting transaction verification service: {e}")
 
 
-
 def get_suggestions_api(order_data, results, vc):
     try:
         with grpc.insecure_channel("suggestions:50053") as channel:
             stub = books_pb2_grpc.BookServiceStub(channel)
 
-            
             vc.increment("orchestrator")
 
             request = books_pb2.BookRequest(
-                orderId=order_data["orderId"],  
-                vectorClock=vc.to_proto(books_pb2.VectorClock)
+                orderId=order_data["orderId"],
+                vectorClock=vc.to_proto(books_pb2.VectorClock),
             )
-
 
             response = stub.GetSuggestions(request)
 
-            
             response_clock = VectorClock.from_proto(response.vectorClock)
             vc.merge(response_clock.clock)
 
@@ -178,56 +174,57 @@ def get_suggestions_api(order_data, results, vc):
         results["suggestions"] = []
         print(f"Error contacting suggestions service: {e.details()}")
 
+
 def enqueue_order_api(order_data, results, vc):
     try:
         with grpc.insecure_channel("order_queue:50054") as channel:
             stub = order_queue_pb2_grpc.OrderQueueServiceStub(channel)
-            
+
             # Build the order object from order_data
             order = order_queue_pb2.Order(
                 orderId=order_data["orderId"],
                 userId=order_data.get("userId", ""),
                 user=order_queue_pb2.UserInfo(
                     name=order_data.get("user", {}).get("name", ""),
-                    contact=order_data.get("user", {}).get("contact", "")
+                    contact=order_data.get("user", {}).get("contact", ""),
                 ),
                 items=[
                     order_queue_pb2.OrderItem(
-                        name=item.get("name", ""),
-                        quantity=item.get("quantity", 0)
-                    ) for item in order_data.get("items", [])
+                        name=item.get("name", ""), quantity=item.get("quantity", 0)
+                    )
+                    for item in order_data.get("items", [])
                 ],
                 billingAddress=order_queue_pb2.BillingAddress(
                     street=order_data.get("billingAddress", {}).get("street", ""),
                     city=order_data.get("billingAddress", {}).get("city", ""),
                     state=order_data.get("billingAddress", {}).get("state", ""),
                     zip=order_data.get("billingAddress", {}).get("zip", ""),
-                    country=order_data.get("billingAddress", {}).get("country", "")
+                    country=order_data.get("billingAddress", {}).get("country", ""),
                 ),
                 shippingMethod=order_data.get("shippingMethod", "Standard"),
-                giftWrapping=order_data.get("giftWrapping", False)
+                giftWrapping=order_data.get("giftWrapping", False),
             )
-            
+
             request = order_queue_pb2.EnqueueRequest(
-                order=order,
-                vectorClock=vc.to_proto(order_queue_pb2.VectorClock)
+                order=order, vectorClock=vc.to_proto(order_queue_pb2.VectorClock)
             )
-            
+
             response = stub.Enqueue(request)
             results["enqueued"] = response.success
             results["queue_position"] = response.queuePosition
-            
+
             # Update vector clock
             if hasattr(response, "vectorClock"):
                 updated_clock = VectorClock.from_proto(response.vectorClock)
                 vc.merge(updated_clock.clock)
-            
-            print(f"Order enqueued: {response.success}, Position: {response.queuePosition}")
-    
+
+            print(
+                f"Order enqueued: {response.success}, Position: {response.queuePosition}"
+            )
+
     except grpc.RpcError as e:
         results["enqueued"] = False
         print(f"Error contacting order queue service: {e.details()}")
-
 
 
 # The process_order function to handle the orchestration of the gRPC calls
@@ -254,14 +251,13 @@ def process_order(order_data, results):
     def enqueue_order():
         suggestions_thread.join()
         vc.increment("orchestrator")
-        
+
         # Only enqueue if order is valid (no fraud detected and transaction is valid)
         if results["fraud_detected"] == False and results["transaction_valid"] == True:
             enqueue_order_api(order_data, results, vc)
         else:
             results["enqueued"] = False
             print("Order not enqueued: fraud detected or transaction invalid")
-
 
     # Start threads
     fraud_thread = threading.Thread(target=check_fraud)
@@ -277,12 +273,9 @@ def process_order(order_data, results):
 
     suggestions_thread.start()
     suggestions_thread.join()
-    
+
     enqueue_thread.start()
     enqueue_thread.join()
-
-   
-
 
     print(f"Final vector clock: {vc.clock}")
 
@@ -307,7 +300,7 @@ async def checkout(request: Request):
         "billingAddress": request_data.get("billingAddress", {}),
         "shippingMethod": request_data.get("shippingMethod", "Standard"),
         "giftWrapping": request_data.get("giftWrapping", False),
-        "userComment": request_data.get("userComment", "")
+        "userComment": request_data.get("userComment", ""),
     }
     results = {}
 
@@ -325,7 +318,7 @@ async def checkout(request: Request):
         if results.get("enqueued", False):
             response_json["queueStatus"] = {
                 "enqueued": True,
-                "position": results.get("queue_position", 0)
+                "position": results.get("queue_position", 0),
             }
 
         return response_json
