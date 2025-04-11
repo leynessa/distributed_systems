@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package orderexecutor;
+
+import "google/protobuf/empty.proto";
+
+service OrderExecutorService {
+  // RPC for other executors to announce their ID during an election
+  rpc AnnounceID(AnnounceRequest) returns (google.protobuf.Empty);
+
+  // RPC to announce new leader to all nodes
+  rpc CoordinatorAnnouncement(CoordinatorMessage) returns (CoordinatorResponse);
+
+  // The RPC to dequeue orders (only leader should execute it)
+  rpc DequeueOrder(DequeueRequest) returns (DequeueResponse);
+  
+  // RPC to process an order that's been dequeued by the leader
+  rpc Dequeue(DequeueRequest) returns (DequeueResponse);
+}
+
+message Order {
+  string orderId = 1;
+  string userName = 2;
+  string bookTitle = 3;
+  int32 quantity = 4;
+}
+
+message AnnounceRequest {
+  int32 executor_id = 1; // The ID of the executor sending the announcement
+}
+
+message DequeueRequest {
+  // For coordinator messages
+  string request_data = 1;
+  
+  // For order processing
+  Order order = 2;
+}
+
+message DequeueResponse {
+  string message = 1;
+  bool executed_by_leader = 2;
+  bool order_received = 3;
+}
+
+// Add coordinator messages for explicit leader election
+message CoordinatorMessage {
+  int32 leader_id = 1;
+}
+
+message CoordinatorResponse {
+  bool acknowledged = 1;
+}
+
+// Legacy messages (kept for compatibility)
+message Are_You_AvailableRequest {
+  string leader_id = 1;
+  string request_to_id = 2;
+}
+
+message Are_You_AvailableResponse {
+  string executor_id = 1;
+  string leader_id = 2;
+  bool available = 3;
+}
+
+message ElectionRequest {
+  int32 candidate_id = 1;
+}
+
+message ElectionResponse {
+  bool acknowledged = 1;
+}

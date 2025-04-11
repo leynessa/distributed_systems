@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   frontend:
     build:
@@ -85,6 +85,76 @@ services:
     volumes:
       - ./utils:/app/utils
       - ./microservices/order_queue/src:/app/microservices/order_queue/src
+    networks:
+      - app-network
+
+  zookeeper:
+    image: zookeeper:3.8
+    ports:
+      - "2181:2181"
+    networks:
+      - app-network
+
+  order_executor_1:
+    build:
+      context: ./
+      dockerfile: ./microservices/order_executor/Dockerfile
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+      - PYTHONFILE=/app/microservices/order_executor/src/app.py
+      - ZK_HOST=zookeeper:2181
+      - SERVICE_NAME=order_executor
+      - ORDER_EXECUTOR_REPLICAS=3
+      - NODE_ID=1
+      - LISTENING_PORT=50055
+    volumes:
+      - ./utils:/app/utils
+      - ./microservices/order_executor/src:/app/microservices/order_executor/src
+    depends_on:
+      - order_queue
+      - zookeeper
+    networks:
+      - app-network
+
+  order_executor_2:
+    build:
+      context: ./
+      dockerfile: ./microservices/order_executor/Dockerfile
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+      - PYTHONFILE=/app/microservices/order_executor/src/app.py
+      - ZK_HOST=zookeeper:2181
+      - SERVICE_NAME=order_executor
+      - ORDER_EXECUTOR_REPLICAS=3
+      - NODE_ID=2
+      - LISTENING_PORT=50056
+    volumes:
+      - ./utils:/app/utils
+      - ./microservices/order_executor/src:/app/microservices/order_executor/src
+    depends_on:
+      - order_queue
+      - zookeeper
+    networks:
+      - app-network
+
+  order_executor_3:
+    build:
+      context: ./
+      dockerfile: ./microservices/order_executor/Dockerfile
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+      - PYTHONFILE=/app/microservices/order_executor/src/app.py
+      - ZK_HOST=zookeeper:2181
+      - SERVICE_NAME=order_executor
+      - ORDER_EXECUTOR_REPLICAS=3
+      - NODE_ID=3
+      - LISTENING_PORT=50057
+    volumes:
+      - ./utils:/app/utils
+      - ./microservices/order_executor/src:/app/microservices/order_executor/src
+    depends_on:
+      - order_queue
+      - zookeeper
     networks:
       - app-network
 networks:
