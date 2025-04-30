@@ -157,6 +157,59 @@ services:
       - zookeeper
     networks:
       - app-network
+    
+  books_primary:
+    build:
+      context: ./
+      dockerfile: ./microservices/books_db/Dockerfile
+    ports:
+      - "50061:50061"
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+      - PYTHONFILE=/app/microservices/books_db/src/replica.py
+      - REPLICA_ROLE=primary
+      - LISTENING_PORT=50061
+      - BACKUP_PORTS=50062,50063
+    volumes:
+      - ./utils:/app/utils
+      - ./microservices/books_db/src:/app/microservices/books_db/src
+    networks:
+      - app-network
+
+  books_backup1:
+    build:
+      context: ./
+      dockerfile: ./microservices/books_db/Dockerfile
+    ports:
+      - "50062:50062"
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+      - PYTHONFILE=/app/microservices/books_db/src/replica.py
+      - REPLICA_ROLE=backup
+      - LISTENING_PORT=50062
+    volumes:
+      - ./utils:/app/utils
+      - ./microservices/books_db/src:/app/microservices/books_db/src
+    networks:
+      - app-network
+
+  books_backup2:
+    build:
+      context: ./
+      dockerfile: ./microservices/books_db/Dockerfile
+    ports:
+      - "50063:50063"
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+      - PYTHONFILE=/app/microservices/books_db/src/replica.py
+      - REPLICA_ROLE=backup
+      - LISTENING_PORT=50063
+    volumes:
+      - ./utils:/app/utils
+      - ./microservices/books_db/src:/app/microservices/books_db/src
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge

@@ -20,10 +20,12 @@ transaction_path = "/app/utils/pb/transaction_service"
 suggestions_path = "/app/utils/pb/suggestions"
 order_queue_path = "/app/utils/pb/order_queue"
 fraud_detection_path = "/app/utils/pb/fraud_detection"
+books_path = "/app/utils/pb/books_db"
 sys.path.insert(0, transaction_path)
 sys.path.insert(1, suggestions_path)
 sys.path.insert(2, order_queue_path)
 sys.path.insert(3, fraud_detection_path)
+sys.path.insert(0, books_path)
 
 
 import order_queue_pb2
@@ -105,38 +107,78 @@ class OrderQueueServicer(order_queue_pb2_grpc.OrderQueueServiceServicer):
     def Dequeue(self, request, context):
         executor_id = request.executorId
         incoming_clock = dict(request.vectorClock.clock)
-        
+
         # Create a new merged vector clock for this operation
         operation_clock = {}
         for service, ts in incoming_clock.items():
             operation_clock[service] = ts
-        
+
         # Increment own time
         operation_clock[SERVICE_NAME] = operation_clock.get(SERVICE_NAME, 0) + 1
-        
+
         try:
             order = self.queue.dequeue()
             order_id = order.orderId
-            
+
             with self.cache_lock:
                 if order_id in self.order_cache:
-                    # Update the vector clock for this order
                     order_vector_clock = self.order_cache[order_id]["vector_clock"]
                     for service, ts in operation_clock.items():
                         order_vector_clock[service] = max(order_vector_clock.get(service, 0), ts)
                 else:
-                    # If order not in cache, use the operation clock
                     order_vector_clock = operation_clock
-            
+
             logger.info(f"[OrderID: {order_id}] Dequeued by Executor: {executor_id}")
             logger.info(f"[OrderID: {order_id}] Vector Clock: {order_vector_clock}")
-            
+
+            import books_pb2
+            import books_pb2_grpc
+
+            channel = grpc.insecure_channel("books_primary:50061")
+            books_stub = books_pb2_grpc.BooksDatabaseStub(channel)
+
+            title_quantity_map = {}
+
+            for item in order.items:
+                title = item.name
+                quantity = item.quantity
+
+                # Step 1: Read current stock
+                read_response = books_stub.Read(books_pb2.ReadRequest(title=title))
+                current_stock = read_response.stock
+
+                if current_stock == 0:
+                    logger.warning(f"[OrderID: {order_id}] Book '{title}' not found or out of stock")
+                    return order_queue_pb2.DequeueResponse(
+                        success=False,
+                        message=f"Book '{title}' not found or out of stock",
+                        vectorClock=order_queue_pb2.VectorClock(clock=order_vector_clock)
+                    )
+
+                if current_stock < quantity:
+                    logger.warning(f"[OrderID: {order_id}] Not enough stock for '{title}': need {quantity}, have {current_stock}")
+                    return order_queue_pb2.DequeueResponse(
+                        success=False,
+                        message=f"Not enough stock for '{title}'",
+                        vectorClock=order_queue_pb2.VectorClock(clock=order_vector_clock)
+                    )
+
+                title_quantity_map[title] = current_stock - quantity
+
+            # Step 2: Update stock for all items
+            for title, new_stock in title_quantity_map.items():
+                books_stub.Write(books_pb2.WriteRequest(title=title, new_stock=new_stock))
+                logger.info(f"[OrderID: {order_id}] Updated '{title}' to stock={new_stock}")
+
+            success_message = f"Order {order_id} completed successfully"
+
             return order_queue_pb2.DequeueResponse(
                 success=True,
-                message=f"Order {order_id} dequeued by executor {executor_id}",
+                message=success_message,
                 order=order,
                 vectorClock=order_queue_pb2.VectorClock(clock=order_vector_clock)
             )
+
         except Exception as e:
             logger.error(f"Error during dequeue: {str(e)}")
             return order_queue_pb2.DequeueResponse(
