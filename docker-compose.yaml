@@ -73,6 +73,21 @@ services:
     networks:
       - app-network
 
+  payment:
+    build:
+      context: ./
+      dockerfile: ./microservices/payment/Dockerfile
+    ports:
+      - 50064:50064
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+      - PYTHONFILE=/app/microservices/payment/src/payment_service.py
+    volumes:
+      - ./utils:/app/utils
+      - ./microservices/payment/src:/app/microservices/payment/src
+    networks:
+      - app-network
+
   order_queue:
     build:
       context: ./
@@ -157,7 +172,7 @@ services:
       - zookeeper
     networks:
       - app-network
-    
+
   books_primary:
     build:
       context: ./

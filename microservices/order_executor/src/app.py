@@ -10,14 +10,22 @@ import threading
 FILE = __file__ if "__file__" in globals() else os.getenv("PYTHONFILE", "")
 order_queue_path = "/app/utils/pb/order_queue"
 order_executor_grpc_path = "/app/utils/pb/order_executor"
+payment_grpc_path = "/app/utils/pb/payment_service"
+database_grpc_path = "/app/utils/pb/books_db"
 
 sys.path.insert(0, order_queue_path)
 sys.path.insert(1, order_executor_grpc_path)
+sys.path.insert(2, payment_grpc_path)
+sys.path.insert(3, database_grpc_path)
 
 import order_executor_pb2_grpc
 import order_executor_pb2
 import order_queue_pb2
 import order_queue_pb2_grpc as order_queue_grpc
+import payment_pb2
+import payment_pb2_grpc
+import books_pb2
+import books_pb2_grpc
 
 from google.protobuf.empty_pb2 import Empty
 
@@ -54,6 +62,23 @@ def get_node_connection(node_id):
     return None
 
 
+def execute_order(title, quantity, db_stub):
+    # Step 1: Read current stock
+    response = db_stub.Read(books_pb2.ReadRequest(title=title))
+    current_stock = response.stock
+
+    # Step 2: Check stock availability
+    if current_stock >= quantity:
+        # Step 3: Write updated stock back to the database
+        new_stock = current_stock - quantity
+        write_response = db_stub.Write(
+            books_pb2.WriteRequest(title=title, new_stock=new_stock)
+        )
+        return write_response.success
+
+    return False  # Not enough stock
+
+
 class OrderExecutorService(order_executor_pb2_grpc.OrderExecutorServiceServicer):
     def __init__(self):
         self.node_id = NODE_ID
@@ -67,11 +92,93 @@ class OrderExecutorService(order_executor_pb2_grpc.OrderExecutorServiceServicer)
             grpc.insecure_channel("order_queue:50054")
         )
 
+        # Payment connection
+        self.payment_stub = payment_pb2_grpc.PaymentServiceStub(
+            grpc.insecure_channel("payment:50064")
+        )
+
+        # Database connection
+        self.database_stub = books_pb2_grpc.BooksDatabaseStub(
+            grpc.insecure_channel("books_primary:50061")
+        )
+
         # Start periodic tasks
         threading.Thread(target=self.election_monitor, daemon=True).start()
 
         # Initial election after a short delay to allow all services to start
         threading.Timer(5.0, self.start_election).start()
+
+    def two_phase_commit(self, order):
+        logger.info(f"Order in 2 phase commit: {order}")
+        order_id = order.orderId
+        amount = order.totalAmount
+        title = order.items[0].name
+        new_stock = order.items[0].quantity
+
+        ready_votes = []
+
+        # --- PREPARE PHASE ---
+        try:
+            payment_prepare_resp = self.payment_stub.Prepare(
+                payment_pb2.PrepareRequest(order_id=order_id, amount=amount)
+            )
+            ready_votes.append(payment_prepare_resp.ready)
+        except Exception as e:
+            logger.warning(f"Payment service prepare failed: {e}")
+            ready_votes.append(False)
+
+        try:
+            db_prepare_resp = self.database_stub.Prepare(
+                books_pb2.TransactionRequest(
+                    order_id=order_id,
+                    title=title,
+                    new_stock=new_stock,
+                )
+            )
+            ready_votes.append(db_prepare_resp.ready)
+        except Exception as e:
+            logger.warning(f"Database prepare failed: {e}")
+            ready_votes.append(False)
+
+        # --- DECISION PHASE ---
+        if all(ready_votes):
+            logger.info("All participants are ready. Sending COMMIT.")
+            try:
+                self.payment_stub.Commit(payment_pb2.CommitRequest(order_id=order_id))
+            except Exception as e:
+                logger.error(f"Error committing to Payment: {e}")
+
+            try:
+                self.database_stub.Commit(
+                    books_pb2.TransactionRequest(
+                        order_id=order_id,
+                        title=title,
+                        new_stock=new_stock,
+                    )
+                )
+            except Exception as e:
+                logger.error(f"Error committing to Database: {e}")
+
+            logger.info("Transaction committed successfully.")
+        else:
+            logger.warning("Prepare phase failed. Sending ABORT.")
+            try:
+                self.payment_stub.Abort(payment_pb2.AbortRequest(order_id=order_id))
+            except Exception as e:
+                logger.error(f"Error aborting on Payment: {e}")
+
+            try:
+                self.database_stub.Abort(
+                    books_pb2.TransactionRequest(
+                        order_id=order_id,
+                        title=title,
+                        new_stock=new_stock,
+                    )
+                )
+            except Exception as e:
+                logger.error(f"Error aborting on Database: {e}")
+
+            logger.info("Transaction aborted.")
 
     def check_leader_health(self):
         # Check if the current leader is still alive
@@ -168,12 +275,11 @@ class OrderExecutorService(order_executor_pb2_grpc.OrderExecutorServiceServicer)
 
     def become_leader(self):
         # Declare this node as the leader and notify all other nodes
-        logger.info(f"Node {self.node_id} declaring itself as leader")
         self.is_leader = True
         self.current_leader = self.node_id
-        logger.info(
-            f" NEW LEADER ELECTED: Node {self.node_id} is now the leader of the cluster"
-        )
+        # logger.info(
+        #     f" NEW LEADER ELECTED: Node {self.node_id} is now the leader of the cluster"
+        # )
 
         # Notify all other nodes about the new leader
         for node_id in EXECUTOR_NODES:
@@ -195,15 +301,15 @@ class OrderExecutorService(order_executor_pb2_grpc.OrderExecutorServiceServicer)
                                     f"Node {node_id} acknowledged Node {self.node_id} as the new leader"
                                 )
                     except Exception as e:
-                        logger.warning(
-                            f"Could not notify node {node_id} about leadership: {e}"
-                        )
+
+                        logger.warning(f"Could not notify node ]")
 
         with self.election_lock:
             self.election_active = False
 
     def perform_leader_duties(self):
         # Main loop that runs when this node is the leader
+        logger.info(f"Performing leader duties for node {self.node_id}")
         if not self.is_leader:
             return
 
@@ -215,10 +321,12 @@ class OrderExecutorService(order_executor_pb2_grpc.OrderExecutorServiceServicer)
                     vectorClock=order_queue_pb2.VectorClock(),  # Initialize with empty vector clock
                 )
             )
-
+            logger.info(f"Dequeued order: {response}")
             if response.success:
                 logger.info(f"Dequeued order: {response.order.orderId}")
                 logger.info(f"Order is being executed... ")
+                logger.info(f"Order: {response.order}")
+                self.two_phase_commit(response.order)
             else:
                 # No orders in queue
                 time.sleep(1)

@@ -1,8 +1,15 @@
 syntax = "proto3";
 
+package booksdb;
+
 service BooksDatabase {
   rpc Read (ReadRequest) returns (ReadResponse);
   rpc Write (WriteRequest) returns (WriteResponse);
+
+
+  rpc Prepare(TransactionRequest) returns (PrepareResponse);
+  rpc Commit(TransactionRequest) returns (CommitResponse);
+  rpc Abort(TransactionRequest) returns (AbortResponse);
 }
 
 message ReadRequest {
@@ -20,4 +27,23 @@ message WriteRequest {
 
 message WriteResponse {
   bool success = 1;
+}
+message TransactionRequest {
+  string order_id = 1;
+  string title = 2;
+  int32 new_stock = 3;
+}
+
+message PrepareResponse {
+  bool ready = 1;
+}
+
+message CommitResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message AbortResponse {
+  bool aborted = 1;
+  string message = 2;
 }

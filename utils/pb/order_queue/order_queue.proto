@@ -28,7 +28,10 @@ message Order {
   BillingAddress billingAddress = 5;
   string shippingMethod = 6;
   bool giftWrapping = 7;
+  double totalAmount = 8;
 }
+
+
 
 message UserInfo {
   string name = 1;

@@ -203,6 +203,7 @@ def enqueue_order_api(order_data, results, vc):
                 ),
                 shippingMethod=order_data.get("shippingMethod", "Standard"),
                 giftWrapping=order_data.get("giftWrapping", False),
+                totalAmount=order_data.get("totalAmount", 500.00),
             )
 
             request = order_queue_pb2.EnqueueRequest(
@@ -295,7 +296,7 @@ async def checkout(request: Request):
         "userId": request_data.get("userId", ""),
         "user": request_data.get("user", {}),
         "items": request_data.get("items", []),
-        "totalAmount": request_data.get("totalAmount", 0.0),
+        "totalAmount": request_data.get("totalAmount", 500.00),
         "creditCard": request_data.get("creditCard"),
         "billingAddress": request_data.get("billingAddress", {}),
         "shippingMethod": request_data.get("shippingMethod", "Standard"),

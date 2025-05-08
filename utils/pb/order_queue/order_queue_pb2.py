@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11order_queue.proto\x12\norderqueue\"n\n\x0bVectorClock\x12\x31\n\x05\x63lock\x18\x01 \x03(\x0b\x32\".orderqueue.VectorClock.ClockEntry\x1a,\n\nClockEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\"\xd4\x01\n\x05Order\x12\x0f\n\x07orderId\x18\x01 \x01(\t\x12\x0e\n\x06userId\x18\x02 \x01(\t\x12\"\n\x04user\x18\x03 \x01(\x0b\x32\x14.orderqueue.UserInfo\x12$\n\x05items\x18\x04 \x03(\x0b\x32\x15.orderqueue.OrderItem\x12\x32\n\x0e\x62illingAddress\x18\x05 \x01(\x0b\x32\x1a.orderqueue.BillingAddress\x12\x16\n\x0eshippingMethod\x18\x06 \x01(\t\x12\x14\n\x0cgiftWrapping\x18\x07 \x01(\x08\")\n\x08UserInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontact\x18\x02 \x01(\t\"+\n\tOrderItem\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08quantity\x18\x02 \x01(\x05\"[\n\x0e\x42illingAddress\x12\x0e\n\x06street\x18\x01 \x01(\t\x12\x0c\n\x04\x63ity\x18\x02 \x01(\t\x12\r\n\x05state\x18\x03 \x01(\t\x12\x0b\n\x03zip\x18\x04 \x01(\t\x12\x0f\n\x07\x63ountry\x18\x05 \x01(\t\"`\n\x0e\x45nqueueRequest\x12 \n\x05order\x18\x01 \x01(\x0b\x32\x11.orderqueue.Order\x12,\n\x0bvectorClock\x18\x02 \x01(\x0b\x32\x17.orderqueue.VectorClock\"x\n\x0f\x45nqueueResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x15\n\rqueuePosition\x18\x03 \x01(\x05\x12,\n\x0bvectorClock\x18\x04 \x01(\x0b\x32\x17.orderqueue.VectorClock\"R\n\x0e\x44\x65queueRequest\x12\x12\n\nexecutorId\x18\x01 \x01(\t\x12,\n\x0bvectorClock\x18\x02 \x01(\x0b\x32\x17.orderqueue.VectorClock\"\x83\x01\n\x0f\x44\x65queueResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12 \n\x05order\x18\x03 \x01(\x0b\x32\x11.orderqueue.Order\x12,\n\x0bvectorClock\x18\x04 \x01(\x0b\x32\x17.orderqueue.VectorClock\"B\n\x12QueueStatusRequest\x12,\n\x0bvectorClock\x18\x01 \x01(\x0b\x32\x17.orderqueue.VectorClock\"h\n\x13QueueStatusResponse\x12\x11\n\tqueueSize\x18\x01 \x01(\x05\x12\x10\n\x08orderIds\x18\x02 \x03(\t\x12,\n\x0bvectorClock\x18\x03 \x01(\x0b\x32\x17.orderqueue.VectorClock2\xf4\x01\n\x11OrderQueueService\x12\x44\n\x07\x45nqueue\x12\x1a.orderqueue.EnqueueRequest\x1a\x1b.orderqueue.EnqueueResponse\"\x00\x12\x44\n\x07\x44\x65queue\x12\x1a.orderqueue.DequeueRequest\x1a\x1b.orderqueue.DequeueResponse\"\x00\x12S\n\x0eGetQueueStatus\x12\x1e.orderqueue.QueueStatusRequest\x1a\x1f.orderqueue.QueueStatusResponse\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11order_queue.proto\x12\norderqueue\"n\n\x0bVectorClock\x12\x31\n\x05\x63lock\x18\x01 \x03(\x0b\x32\".orderqueue.VectorClock.ClockEntry\x1a,\n\nClockEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\"\xe9\x01\n\x05Order\x12\x0f\n\x07orderId\x18\x01 \x01(\t\x12\x0e\n\x06userId\x18\x02 \x01(\t\x12\"\n\x04user\x18\x03 \x01(\x0b\x32\x14.orderqueue.UserInfo\x12$\n\x05items\x18\x04 \x03(\x0b\x32\x15.orderqueue.OrderItem\x12\x32\n\x0e\x62illingAddress\x18\x05 \x01(\x0b\x32\x1a.orderqueue.BillingAddress\x12\x16\n\x0eshippingMethod\x18\x06 \x01(\t\x12\x14\n\x0cgiftWrapping\x18\x07 \x01(\x08\x12\x13\n\x0btotalAmount\x18\x08 \x01(\x01\")\n\x08UserInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x63ontact\x18\x02 \x01(\t\"+\n\tOrderItem\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08quantity\x18\x02 \x01(\x05\"[\n\x0e\x42illingAddress\x12\x0e\n\x06street\x18\x01 \x01(\t\x12\x0c\n\x04\x63ity\x18\x02 \x01(\t\x12\r\n\x05state\x18\x03 \x01(\t\x12\x0b\n\x03zip\x18\x04 \x01(\t\x12\x0f\n\x07\x63ountry\x18\x05 \x01(\t\"`\n\x0e\x45nqueueRequest\x12 \n\x05order\x18\x01 \x01(\x0b\x32\x11.orderqueue.Order\x12,\n\x0bvectorClock\x18\x02 \x01(\x0b\x32\x17.orderqueue.VectorClock\"x\n\x0f\x45nqueueResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x15\n\rqueuePosition\x18\x03 \x01(\x05\x12,\n\x0bvectorClock\x18\x04 \x01(\x0b\x32\x17.orderqueue.VectorClock\"R\n\x0e\x44\x65queueRequest\x12\x12\n\nexecutorId\x18\x01 \x01(\t\x12,\n\x0bvectorClock\x18\x02 \x01(\x0b\x32\x17.orderqueue.VectorClock\"\x83\x01\n\x0f\x44\x65queueResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12 \n\x05order\x18\x03 \x01(\x0b\x32\x11.orderqueue.Order\x12,\n\x0bvectorClock\x18\x04 \x01(\x0b\x32\x17.orderqueue.VectorClock\"B\n\x12QueueStatusRequest\x12,\n\x0bvectorClock\x18\x01 \x01(\x0b\x32\x17.orderqueue.VectorClock\"h\n\x13QueueStatusResponse\x12\x11\n\tqueueSize\x18\x01 \x01(\x05\x12\x10\n\x08orderIds\x18\x02 \x03(\t\x12,\n\x0bvectorClock\x18\x03 \x01(\x0b\x32\x17.orderqueue.VectorClock2\xf4\x01\n\x11OrderQueueService\x12\x44\n\x07\x45nqueue\x12\x1a.orderqueue.EnqueueRequest\x1a\x1b.orderqueue.EnqueueResponse\"\x00\x12\x44\n\x07\x44\x65queue\x12\x1a.orderqueue.DequeueRequest\x1a\x1b.orderqueue.DequeueResponse\"\x00\x12S\n\x0eGetQueueStatus\x12\x1e.orderqueue.QueueStatusRequest\x1a\x1f.orderqueue.QueueStatusResponse\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -28,25 +28,25 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['_VECTORCLOCK_CLOCKENTRY']._serialized_start=99
   _globals['_VECTORCLOCK_CLOCKENTRY']._serialized_end=143
   _globals['_ORDER']._serialized_start=146
-  _globals['_ORDER']._serialized_end=358
-  _globals['_USERINFO']._serialized_start=360
-  _globals['_USERINFO']._serialized_end=401
-  _globals['_ORDERITEM']._serialized_start=403
-  _globals['_ORDERITEM']._serialized_end=446
-  _globals['_BILLINGADDRESS']._serialized_start=448
-  _globals['_BILLINGADDRESS']._serialized_end=539
-  _globals['_ENQUEUEREQUEST']._serialized_start=541
-  _globals['_ENQUEUEREQUEST']._serialized_end=637
-  _globals['_ENQUEUERESPONSE']._serialized_start=639
-  _globals['_ENQUEUERESPONSE']._serialized_end=759
-  _globals['_DEQUEUEREQUEST']._serialized_start=761
-  _globals['_DEQUEUEREQUEST']._serialized_end=843
-  _globals['_DEQUEUERESPONSE']._serialized_start=846
-  _globals['_DEQUEUERESPONSE']._serialized_end=977
-  _globals['_QUEUESTATUSREQUEST']._serialized_start=979
-  _globals['_QUEUESTATUSREQUEST']._serialized_end=1045
-  _globals['_QUEUESTATUSRESPONSE']._serialized_start=1047
-  _globals['_QUEUESTATUSRESPONSE']._serialized_end=1151
-  _globals['_ORDERQUEUESERVICE']._serialized_start=1154
-  _globals['_ORDERQUEUESERVICE']._serialized_end=1398
+  _globals['_ORDER']._serialized_end=379
+  _globals['_USERINFO']._serialized_start=381
+  _globals['_USERINFO']._serialized_end=422
+  _globals['_ORDERITEM']._serialized_start=424
+  _globals['_ORDERITEM']._serialized_end=467
+  _globals['_BILLINGADDRESS']._serialized_start=469
+  _globals['_BILLINGADDRESS']._serialized_end=560
+  _globals['_ENQUEUEREQUEST']._serialized_start=562
+  _globals['_ENQUEUEREQUEST']._serialized_end=658
+  _globals['_ENQUEUERESPONSE']._serialized_start=660
+  _globals['_ENQUEUERESPONSE']._serialized_end=780
+  _globals['_DEQUEUEREQUEST']._serialized_start=782
+  _globals['_DEQUEUEREQUEST']._serialized_end=864
+  _globals['_DEQUEUERESPONSE']._serialized_start=867
+  _globals['_DEQUEUERESPONSE']._serialized_end=998
+  _globals['_QUEUESTATUSREQUEST']._serialized_start=1000
+  _globals['_QUEUESTATUSREQUEST']._serialized_end=1066
+  _globals['_QUEUESTATUSRESPONSE']._serialized_start=1068
+  _globals['_QUEUESTATUSRESPONSE']._serialized_end=1172
+  _globals['_ORDERQUEUESERVICE']._serialized_start=1175
+  _globals['_ORDERQUEUESERVICE']._serialized_end=1419
 # @@protoc_insertion_point(module_scope)
