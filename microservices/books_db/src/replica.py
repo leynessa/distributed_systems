@@ -27,6 +27,32 @@ class BooksDatabaseServicer(books_pb2_grpc.BooksDatabaseServicer):
         print(f"[WRITE] '{request.title}' => {request.new_stock}")
         return books_pb2.WriteResponse(success=True)
 
+    def DecrementStock(self, request, context):
+        """Decrement stock by a specified amount."""
+        current_stock = self.store.get(request.title, 0)
+        new_stock = current_stock - request.amount
+
+        if new_stock < 0:
+            # Prevent negative stock
+            new_stock = 0
+
+        self.store[request.title] = new_stock
+        print(
+            f"[DECREMENT] '{request.title}' => {new_stock} (Decreased by {request.amount})"
+        )
+        return books_pb2.WriteResponse(success=True)
+
+    def IncrementStock(self, request, context):
+        """Increment stock by a specified amount."""
+        current_stock = self.store.get(request.title, 0)
+        new_stock = current_stock + request.amount
+
+        self.store[request.title] = new_stock
+        print(
+            f"[INCREMENT] '{request.title}' => {new_stock} (Increased by {request.amount})"
+        )
+        return books_pb2.WriteResponse(success=True)
+
 
 # Primary replica: propagates Write to backups
 class PrimaryReplica(BooksDatabaseServicer):
