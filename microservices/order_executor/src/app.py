@@ -112,73 +112,104 @@ class OrderExecutorService(order_executor_pb2_grpc.OrderExecutorServiceServicer)
         logger.info(f"Order in 2 phase commit: {order}")
         order_id = order.orderId
         amount = order.totalAmount
-        title = order.items[0].name
-        new_stock = order.items[0].quantity
 
         ready_votes = []
 
-        # --- PREPARE PHASE ---
+        updated_items = []  # to store (title, new_stock) for commit/abort phase
+
+        # --- READ AND PREPARE FOR EACH ITEM ---
+        for item in order.items:
+            title = item.name
+            quantity = item.quantity
+
+            try:
+                read_response = self.database_stub.Read(books_pb2.ReadRequest(title=title))
+                current_stock = read_response.stock
+                logger.info(f"[{title}] Current stock: {current_stock}")
+            except Exception as e:
+                logger.warning(f"[{title}] Read failed: {e}")
+                ready_votes.append(False)
+                continue
+
+            new_stock = current_stock - quantity
+            if new_stock < 0:
+                logger.warning(f"[{title}] Not enough stock")
+                ready_votes.append(False)
+                continue
+
+            try:
+                db_prepare_resp = self.database_stub.Prepare(
+                    books_pb2.TransactionRequest(
+                        order_id=order_id,
+                        title=title,
+                        new_stock=new_stock,
+                    )
+                )
+                logger.info(f"[{title}] Prepare ready: {db_prepare_resp.ready}")
+                ready_votes.append(db_prepare_resp.ready)
+                if db_prepare_resp.ready:
+                    updated_items.append((title, new_stock))
+            except Exception as e:
+                logger.warning(f"[{title}] Prepare failed: {e}")
+                ready_votes.append(False)
+
+        # --- PREPARE PAYMENT ---
         try:
             payment_prepare_resp = self.payment_stub.Prepare(
                 payment_pb2.PrepareRequest(order_id=order_id, amount=amount)
             )
+            logger.info(f"[Payment] Prepare ready: {payment_prepare_resp.ready}")
             ready_votes.append(payment_prepare_resp.ready)
         except Exception as e:
-            logger.warning(f"Payment service prepare failed: {e}")
-            ready_votes.append(False)
-
-        try:
-            db_prepare_resp = self.database_stub.Prepare(
-                books_pb2.TransactionRequest(
-                    order_id=order_id,
-                    title=title,
-                    new_stock=new_stock,
-                )
-            )
-            ready_votes.append(db_prepare_resp.ready)
-        except Exception as e:
-            logger.warning(f"Database prepare failed: {e}")
+            logger.warning(f"[Payment] Prepare failed: {e}")
             ready_votes.append(False)
 
         # --- DECISION PHASE ---
-        if all(ready_votes):
-            logger.info("All participants are ready. Sending COMMIT.")
+        if all(ready_votes) and updated_items:
+            logger.info("All participants ready. Sending COMMIT.")
+
             try:
                 self.payment_stub.Commit(payment_pb2.CommitRequest(order_id=order_id))
             except Exception as e:
-                logger.error(f"Error committing to Payment: {e}")
+                logger.error(f"[Payment] Commit failed: {e}")
 
-            try:
-                self.database_stub.Commit(
-                    books_pb2.TransactionRequest(
-                        order_id=order_id,
-                        title=title,
-                        new_stock=new_stock,
+            for title, new_stock in updated_items:
+                try:
+                    self.database_stub.Commit(
+                        books_pb2.TransactionRequest(
+                            order_id=order_id,
+                            title=title,
+                            new_stock=new_stock,
+                        )
                     )
-                )
-            except Exception as e:
-                logger.error(f"Error committing to Database: {e}")
+                    logger.info(f"[{title}] Commit OK")
+                except Exception as e:
+                    logger.error(f"[{title}] Commit failed: {e}")
 
-            logger.info("Transaction committed successfully.")
+            logger.info("Transaction committed.")
         else:
             logger.warning("Prepare phase failed. Sending ABORT.")
+
             try:
                 self.payment_stub.Abort(payment_pb2.AbortRequest(order_id=order_id))
             except Exception as e:
-                logger.error(f"Error aborting on Payment: {e}")
+                logger.error(f"[Payment] Abort failed: {e}")
 
-            try:
-                self.database_stub.Abort(
-                    books_pb2.TransactionRequest(
-                        order_id=order_id,
-                        title=title,
-                        new_stock=new_stock,
+            for title, new_stock in updated_items:
+                try:
+                    self.database_stub.Abort(
+                        books_pb2.TransactionRequest(
+                            order_id=order_id,
+                            title=title,
+                            new_stock=new_stock,
+                        )
                     )
-                )
-            except Exception as e:
-                logger.error(f"Error aborting on Database: {e}")
+                    logger.info(f"[{title}] Abort OK")
+                except Exception as e:
+                    logger.error(f"[{title}] Abort failed: {e}")
 
             logger.info("Transaction aborted.")
+
 
     def check_leader_health(self):
         # Check if the current leader is still alive
