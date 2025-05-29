@@ -9,6 +9,15 @@ services:
     volumes:
       - ./frontend/src:/usr/share/nginx/html
 
+  observability:
+    image: grafana/otel-lgtm
+    ports:
+      - "3000:3000"
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      - OTEL_METRIC_EXPORT_INTERVAL=1000
+
   orchestrator:
     build:
       context: ./
