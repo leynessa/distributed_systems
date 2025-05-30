@@ -7,6 +7,20 @@ from fastapi.middleware.cors import CORSMiddleware
 import threading
 import requests
 import uuid
+import time
+
+# these are needed for OpenTelemetry
+from opentelemetry import trace, metrics
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.grpc import GrpcInstrumentorClient
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+from opentelemetry.trace import Status, StatusCode
+from opentelemetry.sdk.resources import Resource
 
 # This set of lines are needed to import the gRPC stubs.
 # The path of the stubs is relative to the current file, or absolute inside the container.
@@ -56,6 +70,41 @@ app.add_middleware(
 
 import grpc
 
+provider = TracerProvider(resource=Resource.create({"service.name": "orchestrator"}))
+otlp_exporter = OTLPSpanExporter(endpoint="observability:4317", insecure=True)
+processor = BatchSpanProcessor(otlp_exporter)
+provider.add_span_processor(processor)
+
+# Sets the global default tracer provider
+trace.set_tracer_provider(provider)
+
+# setting up metrics
+
+metric_reader = PeriodicExportingMetricReader(
+    OTLPMetricExporter(endpoint="observability:4317", insecure=True)
+)
+meter_provider = MeterProvider(
+    resource=Resource.create({"service.name": "orchestrator"}),
+    metric_readers=[metric_reader],
+)
+metrics.set_meter_provider(meter_provider)
+meter = metrics.get_meter(__name__)
+
+# Counter
+order_counter = meter.create_counter(
+    "orders.total", unit="1", description="Total number of orders processed"
+)
+
+# UpDownCounter
+active_orders = meter.create_up_down_counter(
+    "orders.active", unit="1", description="Number of orders currently being processed"
+)
+
+# Histogram
+order_processing_time = meter.create_histogram(
+    "order.processing.time", unit="ms", description="Time taken to process orders"
+)
+
 
 # utils/vector_clock.py
 class VectorClock:
@@ -78,27 +127,37 @@ class VectorClock:
 
 
 def check_fraud_api(order_data, results, vc):
-    channel = grpc.insecure_channel("fraud_detection:50051")
-    stub = fraud_pb2_grpc.FraudCheckerStub(channel)
-    try:
-        vc.increment("orchestrator")
+    # Create a tracer
+    tracer = trace.get_tracer(__name__)
+    with tracer.start_as_current_span("check_fraud") as span:
 
-        request = fraud_pb2.FraudRequest(
-            orderId=order_data["orderId"],
-            vectorClock=vc.to_proto(fraud_pb2.VectorClock),
-        )
+        span.set_attribute("order.id", order_data["orderId"])
+        span.set_attribute("service.name", "fraud_detection")
+        span.set_attribute("service.port", "50051")
+        channel = grpc.insecure_channel("fraud_detection:50051")
+        stub = fraud_pb2_grpc.FraudCheckerStub(channel)
+        try:
+            vc.increment("orchestrator")
 
-        response = stub.CheckFraud(request)
-        results["fraud_detected"] = response.isFraudulent
-        print("true fraud result: ", response.isFraudulent)
+            request = fraud_pb2.FraudRequest(
+                orderId=order_data["orderId"],
+                vectorClock=vc.to_proto(fraud_pb2.VectorClock),
+            )
 
-        # merge clock з відповіді
-        updated_clock = VectorClock.from_proto(response.vectorClock)
-        vc.merge(updated_clock.clock)
+            response = stub.CheckFraud(request)
+            results["fraud_detected"] = response.isFraudulent
+            print("true fraud result: ", response.isFraudulent)
+            span.set_attribute("fraud.detected", response.isFraudulent)
 
-    except grpc.RpcError as e:
-        results["fraud_detected"] = None
-        print(f"Error contacting fraud detection service: {e}")
+            # merge clock з відповіді
+            updated_clock = VectorClock.from_proto(response.vectorClock)
+            vc.merge(updated_clock.clock)
+
+        except grpc.RpcError as e:
+            results["fraud_detected"] = None
+            span.set_status(Status(StatusCode.ERROR))
+            span.record_exception(e)
+            print(f"Error contacting fraud detection service: {e}")
 
 
 def verify_transaction_api(order_data, results, vc):
@@ -283,51 +342,78 @@ def process_order(order_data, results):
 
 @app.post("/checkout")
 async def checkout(request: Request):
-    """
-    Responds with a JSON object containing the order ID, status, and suggested books.
-    """
-    try:
-        request_data = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON")
+    tracer = trace.get_tracer(__name__)
 
-    order_data = {
-        "orderId": request_data.get("orderId", "12345"),
-        "userId": request_data.get("userId", ""),
-        "user": request_data.get("user", {}),
-        "items": request_data.get("items", []),
-        "totalAmount": request_data.get("totalAmount", 500.00),
-        "creditCard": request_data.get("creditCard"),
-        "billingAddress": request_data.get("billingAddress", {}),
-        "shippingMethod": request_data.get("shippingMethod", "Standard"),
-        "giftWrapping": request_data.get("giftWrapping", False),
-        "userComment": request_data.get("userComment", ""),
-    }
-    results = {}
+    with tracer.start_as_current_span("checkout") as span:
+        print("Created checkout span")
+        start_time = time.time()
+        active_orders.add(1)
+        """
+        Responds with a JSON object containing the order ID, status, and suggested books.
+        """
+        try:
+            request_data = await request.json()
+            order_counter.add(1)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    # Process order (API calls in parallel)
-    process_order(order_data, results)
-    print("results:", results)
-
-    if results["fraud_detected"] == False and results["transaction_valid"] == True:
-        response_json = {
-            "status": "Order Approved",
-            "orderId": order_data["orderId"],
-            "suggestedBooks": results.get("suggestions", []),
+        span.set_attribute("order.id", request_data.get("orderId", "12345"))
+        span.set_attribute(
+            "order.total_amount", request_data.get("totalAmount", 500.00)
+        )
+        span.set_attribute("credit_card.number", request_data.get("creditCard", {}))
+        order_data = {
+            "orderId": request_data.get("orderId", "12345"),
+            "userId": request_data.get("userId", ""),
+            "user": request_data.get("user", {}),
+            "items": request_data.get("items", []),
+            "totalAmount": request_data.get("totalAmount", 500.00),
+            "creditCard": request_data.get("creditCard"),
+            "billingAddress": request_data.get("billingAddress", {}),
+            "shippingMethod": request_data.get("shippingMethod", "Standard"),
+            "giftWrapping": request_data.get("giftWrapping", False),
+            "userComment": request_data.get("userComment", ""),
         }
-        # Add queue information if enqueued
-        if results.get("enqueued", False):
-            response_json["queueStatus"] = {
-                "enqueued": True,
-                "position": results.get("queue_position", 0),
-            }
+        results = {}
 
-        return response_json
-    else:
-        response_json = {
-            "status": "Order Rejected",
-            "orderId": order_data["orderId"],
-            "suggestedBooks": [],
-            "error": {"message": "Fraud detected or transaction invalid"},
-        }
-        return response_json
+        try:
+            # Process order (API calls in parallel)
+            process_order(order_data, results)
+            print("results:", results)
+
+            # Add result attributes to the span
+            span.set_attribute("fraud.detected", results.get("fraud_detected", False))
+            span.set_attribute(
+                "transaction.valid", results.get("transaction_valid", False)
+            )
+            span.set_attribute("order.enqueued", results.get("enqueued", False))
+
+            if (
+                results["fraud_detected"] == False
+                and results["transaction_valid"] == True
+            ):
+                response_json = {
+                    "status": "Order Approved",
+                    "orderId": order_data["orderId"],
+                    "suggestedBooks": results.get("suggestions", []),
+                }
+                # Add queue information if enqueued
+                if results.get("enqueued", False):
+                    response_json["queueStatus"] = {
+                        "enqueued": True,
+                        "position": results.get("queue_position", 0),
+                    }
+
+                return response_json
+            else:
+                response_json = {
+                    "status": "Order Rejected",
+                    "orderId": order_data["orderId"],
+                    "suggestedBooks": [],
+                    "error": {"message": "Fraud detected or transaction invalid"},
+                }
+                return response_json
+        finally:
+            active_orders.add(-1)
+            end_time = time.time()
+            order_processing_time.record((end_time - start_time) * 1000)

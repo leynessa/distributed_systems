@@ -17,6 +17,8 @@ services:
       - "4318:4318"
     environment:
       - OTEL_METRIC_EXPORT_INTERVAL=1000
+    networks:
+      - app-network
 
   orchestrator:
     build:
